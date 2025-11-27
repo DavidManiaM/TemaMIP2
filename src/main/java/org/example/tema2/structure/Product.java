@@ -1,6 +1,7 @@
 package org.example.tema2.structure;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import javafx.beans.property.*;
 import org.example.tema2.structure.utils.ProductDeserializer;
 
 @JsonDeserialize(using = ProductDeserializer.class)
@@ -26,52 +27,60 @@ public abstract sealed class Product permits Food, Drink {
                 return "Bautura racoritoare";
             case ALCOHOL_DRINK:
                 return "Bautura alcoolica";
-        };
-        return  "";
+        }
+        return "";
     }
 
-    private final String name;
-    private double price;
-    private boolean vegetarian = false;
+    private final StringProperty name = new SimpleStringProperty(this, "name", "");
+    private final DoubleProperty price = new SimpleDoubleProperty(this, "price", 0.0);
+    private final BooleanProperty vegetarian = new SimpleBooleanProperty(this, "vegetarian", false);
     private Type type;
 
+    // No-arg constructor (useful for frameworks/deserializers)
+    public Product() {
+    }
+
     public Product(String name, double price, Type type) {
-        this.name = name;
-        this.price = price;
+        this.name.set(name);
+        this.price.set(price);
         this.type = type;
     }
 
     public Product(String name, double price, Type type, boolean vegetarian) {
-        this.name = name;
-        this.price = price;
+        this.name.set(name);
+        this.price.set(price);
         this.type = type;
-        this.vegetarian = vegetarian;
+        this.vegetarian.set(vegetarian);
     }
 
     @Override
     public String toString() {
-        return "> " + name + " – " + price + " RON";
+        return "> " + name.get() + " – " + price.get() + " RON";
     }
 
     public String getName() {
-        return name;
+        return name.get();
     }
+    public void setName(String name) { this.name.set(name); }
+    public StringProperty nameProperty() { return name; }
 
     public double getPrice() {
-        return price;
+        return price.get();
     }
-
-    public void setPrice(double price) {
-        this.price = price;
+    public void setPrice(double price){
+        this.price.set(price);
+    }
+    public DoubleProperty priceProperty() {
+        return this.price;
     }
 
     public boolean isVegetarian() {
-        return vegetarian;
+        return vegetarian.get();
     }
-
     public void setVegetarian(boolean vegetarian) {
-        this.vegetarian = vegetarian;
+        this.vegetarian.set(vegetarian);
     }
+    public BooleanProperty vegetarianProperty() { return vegetarian; }
 
     public Type getType() {
         return type;
