@@ -1,11 +1,20 @@
 package org.example.tema2.structure;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import jakarta.persistence.*;
 import javafx.beans.property.*;
 import org.example.tema2.structure.utils.ProductDeserializer;
 
 @JsonDeserialize(using = ProductDeserializer.class)
-public abstract sealed class Product permits Food, Drink {
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "product_type")
+public abstract /*sealed*/ class Product /*permits Food, Drink */{
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     public enum Type {
         APPETIZER,
@@ -31,9 +40,14 @@ public abstract sealed class Product permits Food, Drink {
         return "";
     }
 
+    @Transient
     private final StringProperty name = new SimpleStringProperty(this, "name", "");
+    @Transient
     private final DoubleProperty price = new SimpleDoubleProperty(this, "price", 0.0);
+    @Transient
     private final BooleanProperty vegetarian = new SimpleBooleanProperty(this, "vegetarian", false);
+
+    @Enumerated(EnumType.STRING)
     private Type type;
 
     // No-arg constructor (useful for frameworks/deserializers)
@@ -58,28 +72,24 @@ public abstract sealed class Product permits Food, Drink {
         return "> " + name.get() + " – " + price.get() + " RON";
     }
 
-    public String getName() {
-        return name.get();
-    }
-    public void setName(String name) { this.name.set(name); }
+    // JPA-compatible getters/setters that sync with properties
+    @Column(name = "name")
+    @Access(AccessType.PROPERTY)
+    public String getName() { return name.get(); }
+    public void setName(String n) { this.name.set(n); }
+
+    @Column(name = "price")
+    @Access(AccessType.PROPERTY)
+    public double getPrice() { return price.get(); }
+    public void setPrice(double p) { this.price.set(p); }
+
+    @Column(name = "vegetarian")
+    @Access(AccessType.PROPERTY)
+    public boolean isVegetarian() { return vegetarian.get(); }
+    public void setVegetarian(boolean v) { this.vegetarian.set(v); }
+
     public StringProperty nameProperty() { return name; }
-
-    public double getPrice() {
-        return price.get();
-    }
-    public void setPrice(double price){
-        this.price.set(price);
-    }
-    public DoubleProperty priceProperty() {
-        return this.price;
-    }
-
-    public boolean isVegetarian() {
-        return vegetarian.get();
-    }
-    public void setVegetarian(boolean vegetarian) {
-        this.vegetarian.set(vegetarian);
-    }
+    public DoubleProperty priceProperty() { return this.price; }
     public BooleanProperty vegetarianProperty() { return vegetarian; }
 
     public Type getType() {

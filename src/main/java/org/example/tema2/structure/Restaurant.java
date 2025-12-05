@@ -19,6 +19,7 @@ public class Restaurant {
     public Restaurant(String name) {
         this.name = name;
         this.menu = new Menu();
+        menu.initializeDefaultProducts();
         this.products = new ArrayList<>(menu.getProducts());
         orders =  new ArrayList<>();
         orders.add(new Order());

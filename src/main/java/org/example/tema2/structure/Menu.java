@@ -1,15 +1,27 @@
 package org.example.tema2.structure;
 
+import jakarta.persistence.*;
+
 import java.util.*;
 
+@Entity
+@Table(name="menu")
 public class Menu {
 
+    @Id
+    @GeneratedValue(strategy= GenerationType.IDENTITY)
+    private Long id;
+
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "menu_id")
+    private List<Product> products = new ArrayList<>();
 
 
-    private List<Product> products;
+    public Menu() {
 
+    }
 
-    Menu() {
+    public void initializeDefaultProducts() {
 
         products = List.of(
                 new Food("Batoane de mozzarella", 15, 200, Product.Type.APPETIZER, true),
@@ -24,11 +36,18 @@ public class Menu {
                 new Drink("Bere", 8, 500, Product.Type.ALCOHOL_DRINK, true),
                 new Drink("Vin alb sec", 8, 500, Product.Type.ALCOHOL_DRINK, true),
                 new Drink("Coniac", 8, 500, Product.Type.ALCOHOL_DRINK, true)
-
         );
 
     }
 
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public List<Product> getProducts() {
         return products;

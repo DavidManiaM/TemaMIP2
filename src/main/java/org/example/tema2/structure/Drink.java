@@ -1,7 +1,14 @@
 package org.example.tema2.structure;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+
+@Entity
+@DiscriminatorValue("DRINK")
 public final class Drink extends Product {
 
+    @Column(name = "volume")
     private final int volume;
 
     public Drink(String name, double price, int volume, Product.Type type) {

@@ -1,5 +1,8 @@
 package org.example.tema2;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 import javafx.application.Application;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -11,10 +14,14 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.shape.Box;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
+import javafx.stage.Stage;
+import javafx.beans.binding.Bindings;
+import javafx.collections.FXCollections;
 import org.example.tema2.structure.Product;
 import org.example.tema2.structure.Restaurant;
+import org.example.tema2.structure.Menu;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -74,24 +81,25 @@ public class RestaurantApplication extends Application {
         // Left: list of products
         ListView<Product> productListView = new ListView<>();
         productListView.setItems(FXCollections.observableArrayList(products));
-        productListView.setPrefWidth(180);
-        productListView.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(Product p, boolean empty) {
-                super.updateItem(p, empty);
-                if (empty || p == null) {
-                    setText(null);
-                } else {
-                    // show a human-friendly label; replace with p.getName() if available
-                    setText(p.toString());
-                }
-            }
-        });
+        productListView.setPrefWidth(400);
+//        productListView.setCellFactory(lv -> new ListCell<>() {
+//            @Override
+//            protected void updateItem(Product p, boolean empty) {
+//                super.updateItem(p, empty);
+//                if (empty || p == null) {
+//                    setText(null);
+//                } else {
+//                    setText(p.toString());
+//                }
+//            }
+//        });
 
-        // Right: form and summary (define missing controls)
-        Label titleLabel = new Label("Product Editor");
+        // Right
+        Label titleLabel = new Label("Editor de produse");
         TextField nameField = new TextField();
-        Button saveButton = new Button("Save");
+        nameField.setPromptText("Nume produs");
+        TextField priceField = new TextField();
+        priceField.setPromptText("Pret");
         TextArea summaryArea = new TextArea();
         summaryArea.setEditable(false);
         summaryArea.setPrefRowCount(10);
@@ -99,10 +107,12 @@ public class RestaurantApplication extends Application {
         GridPane formGrid = new GridPane();
         formGrid.setHgap(10);
         formGrid.setVgap(10);
-        formGrid.add(new Label("Name:"), 0, 0);
+        formGrid.add(new Label("Nume:"), 0, 0);
         formGrid.add(nameField, 1, 0);
+        formGrid.add(new Label("Pret:"), 0, 1);
+        formGrid.add(priceField, 1, 1);
 
-        VBox rightBox = new VBox(10, titleLabel, formGrid, saveButton, summaryArea);
+        VBox rightBox = new VBox(10, titleLabel, formGrid, summaryArea);
         rightBox.setAlignment(Pos.TOP_CENTER);
         rightBox.setPadding(new Insets(10));
         rightBox.setPrefWidth(300);
@@ -111,19 +121,76 @@ public class RestaurantApplication extends Application {
         HBox root = new HBox(20, productListView, rightBox);
         root.setPadding(new Insets(20));
 
-        // Optional: select product to populate form/summary
         productListView.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
+            // Unbind from the old product first
+            if (oldP != null) {
+                nameField.textProperty().unbindBidirectional(oldP.nameProperty());
+                Bindings.unbindBidirectional(priceField.textProperty(), oldP.priceProperty());
+            }
+
             if (newP != null) {
-                // adjust to actual Product API (e.g., getName/getDescription)
-                nameField.setText(newP.toString());
-                summaryArea.setText(newP.toString());
+                nameField.setText(newP.getName());
+                priceField.setText(String.valueOf(newP.getPrice()));
+                summaryArea.setText(newP.getName());
+
+                nameField.textProperty().bindBidirectional(newP.nameProperty());
+                Bindings.bindBidirectional(priceField.textProperty(), newP.priceProperty(), new javafx.util.converter.NumberStringConverter());
+            } else {
+                nameField.clear();
+                priceField.clear();
+                summaryArea.clear();
             }
         });
 
-        Scene scene = new Scene(root, 520, 450);
-        stage.setTitle("Restaurant - Products");
+
+        Scene scene = new Scene(root, 720, 450);
+        stage.setTitle("Restaurant \"La Ardei\"");
         stage.setScene(scene);
         stage.show();
 
+
+
+
+
+
+
+
+
+
+
+        resetAndPopulateDatabase();
+
+
     }
+
+    private void resetAndPopulateDatabase() {
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
+        EntityManager em = emf.createEntityManager();
+
+        try {
+            em.getTransaction().begin();
+
+            // Delete all data
+            em.createQuery("DELETE FROM Food").executeUpdate();
+            em.createQuery("DELETE FROM Drink").executeUpdate();
+            em.createQuery("DELETE FROM Product").executeUpdate();
+            em.createQuery("DELETE FROM Menu").executeUpdate();
+
+            // Insert new data
+            Menu menu = new Menu();
+            menu.initializeDefaultProducts();
+            em.persist(menu);
+
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            e.printStackTrace();
+        } finally {
+            em.close();
+            emf.close();
+        }
+    }
+
 }
