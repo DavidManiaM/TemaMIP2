@@ -1,0 +1,80 @@
+{
+  "name" : "La Ardei",
+  "TVA" : 9,
+  "menu" : {
+    "id" : null,
+    "products" : [ {
+      "name" : "Batoane de mozzarella",
+      "price" : 15.0,
+      "vegetarian" : true,
+      "type" : "APPETIZER",
+      "weight" : 200
+    }, {
+      "name" : "Cartofi prajiti cu usturoi si parmezan",
+      "price" : 18.5,
+      "vegetarian" : true,
+      "type" : "APPETIZER",
+      "weight" : 250
+    }, {
+      "name" : "Pizza Margherita",
+      "price" : 45.0,
+      "vegetarian" : true,
+      "type" : "MAIN_COURSE",
+      "weight" : 450
+    }, {
+      "name" : "Paste Carbonara",
+      "price" : 52.5,
+      "vegetarian" : false,
+      "type" : "MAIN_COURSE",
+      "weight" : 400
+    }, {
+      "name" : "Lava Cake",
+      "price" : 20.0,
+      "vegetarian" : true,
+      "type" : "DESSERT",
+      "weight" : 300
+    }, {
+      "name" : "Tiramisu",
+      "price" : 22.0,
+      "vegetarian" : true,
+      "type" : "DESSERT",
+      "weight" : 350
+    }, {
+      "name" : "Cheesecake",
+      "price" : 30.0,
+      "vegetarian" : true,
+      "type" : "DESSERT",
+      "weight" : 300
+    }, {
+      "name" : "Limonada",
+      "price" : 15.0,
+      "vegetarian" : true,
+      "type" : "COOLING_DRINK",
+      "volume" : 400
+    }, {
+      "name" : "Apa plata",
+      "price" : 8.0,
+      "vegetarian" : true,
+      "type" : "COOLING_DRINK",
+      "volume" : 500
+    }, {
+      "name" : "Bere",
+      "price" : 8.0,
+      "vegetarian" : true,
+      "type" : "ALCOHOL_DRINK",
+      "volume" : 500
+    }, {
+      "name" : "Vin alb sec",
+      "price" : 8.0,
+      "vegetarian" : true,
+      "type" : "ALCOHOL_DRINK",
+      "volume" : 500
+    }, {
+      "name" : "Coniac",
+      "price" : 8.0,
+      "vegetarian" : true,
+      "type" : "ALCOHOL_DRINK",
+      "volume" : 500
+    } ]
+  }
+}

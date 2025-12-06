@@ -9,7 +9,11 @@ import jakarta.persistence.Entity;
 public final class Drink extends Product {
 
     @Column(name = "volume")
-    private final int volume;
+    private int volume;
+
+    public Drink() {
+        super();
+    }
 
     public Drink(String name, double price, int volume, Product.Type type) {
         super(name, price, type);

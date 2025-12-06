@@ -1,11 +1,11 @@
 package org.example.tema2;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 import javafx.application.Application;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -14,20 +14,22 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.control.*;
-import javafx.stage.Stage;
 import javafx.stage.Stage;
 import javafx.beans.binding.Bindings;
-import javafx.collections.FXCollections;
 import org.example.tema2.structure.Product;
 import org.example.tema2.structure.Restaurant;
 import org.example.tema2.structure.Menu;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RestaurantApplication extends Application {
+
+    private Restaurant restaurant;
+
     @Override
     public void start(Stage stage) {
 //        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
@@ -75,7 +77,7 @@ public class RestaurantApplication extends Application {
 
 
 
-        Restaurant restaurant = new Restaurant("La Ardei");
+        restaurant = new Restaurant("La Ardei");
         List<Product> products = restaurant.getProducts();
 
         // Left: list of products
@@ -142,8 +144,39 @@ public class RestaurantApplication extends Application {
             }
         });
 
+        MenuButton menuButton = new MenuButton("File");
+        MenuItem importItem = new MenuItem("Importa din BD");
+        MenuItem exportItem = new MenuItem("Exporta in BD");
 
-        Scene scene = new Scene(root, 720, 450);
+        importItem.setOnAction(e -> {
+            List<Product> importedProducts = importFromDB();
+            productListView.setItems(FXCollections.observableArrayList(importedProducts));
+
+            // Add to restaurant
+            restaurant.getProducts().clear();
+            restaurant.getProducts().addAll(importedProducts);
+
+            // Export to JSON file
+            exportToJson(restaurant);
+
+            System.out.println("Import selected");
+        });
+
+
+        exportItem.setOnAction(e -> {
+            List<Product> currentProducts = new ArrayList<>(productListView.getItems());
+            exportToDB(currentProducts);
+            System.out.println("Export completed");
+        });
+
+
+        menuButton.getItems().addAll(importItem, exportItem);
+
+        VBox topBox = new VBox(10, menuButton, root);
+        topBox.setAlignment(Pos.TOP_LEFT);
+        topBox.setPadding(new Insets(10));
+
+        Scene scene = new Scene(topBox, 720, 450);
         stage.setTitle("Restaurant \"La Ardei\"");
         stage.setScene(scene);
         stage.show();
@@ -163,6 +196,83 @@ public class RestaurantApplication extends Application {
 
     }
 
+    private List<Product> importFromDB() {
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
+        EntityManager em = emf.createEntityManager();
+
+        List<Product> products = new ArrayList<>();
+        try {
+            Menu menu = em.createQuery("SELECT m FROM Menu m", Menu.class)
+                    .setMaxResults(1)
+                    .getSingleResult();
+            products.addAll(menu.getProducts());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            em.close();
+            emf.close();
+        }
+        return products;
+    }
+
+
+    private void exportToDB(List<Product> products) {
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
+        EntityManager em = emf.createEntityManager();
+
+        try {
+            em.getTransaction().begin();
+
+            // Clear existing data
+            em.createNativeQuery("DELETE FROM Food").executeUpdate();
+            em.createNativeQuery("DELETE FROM Drink").executeUpdate();
+            em.createNativeQuery("DELETE FROM Product").executeUpdate();
+            em.createNativeQuery("DELETE FROM Menu").executeUpdate();
+
+            // Create new menu with current products
+            Menu menu = new Menu();
+            for (Product product : products) {
+                menu.getProducts().add(product);
+            }
+            em.persist(menu);
+
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            e.printStackTrace();
+        } finally {
+            em.close();
+            emf.close();
+        }
+    }
+
+    private void exportToJson(Restaurant restaurant) {
+        Path restaurantConfigFilePath = Path.of("configRestaurant.json");
+        ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            // Create parent directories if they don't exist
+            if (restaurantConfigFilePath.getParent() != null) {
+                Files.createDirectories(restaurantConfigFilePath.getParent());
+            }
+
+            String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(restaurant);
+            Files.writeString(restaurantConfigFilePath, jsonString);
+            System.out.println("Successfully wrote to '" + restaurantConfigFilePath + "'");
+        } catch (JsonProcessingException e) {
+            System.err.println("JSON syntax or mapping error: " + e.getMessage());
+            e.printStackTrace();  // Add this to see the actual error
+        } catch (IOException e) {
+            System.err.println("An error occurred while writing to '" + restaurantConfigFilePath + "'.");
+            e.printStackTrace();
+        }
+    }
+
+
+
+
     private void resetAndPopulateDatabase() {
         EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
         EntityManager em = emf.createEntityManager();
@@ -170,11 +280,10 @@ public class RestaurantApplication extends Application {
         try {
             em.getTransaction().begin();
 
-            // Delete all data
-            em.createQuery("DELETE FROM Food").executeUpdate();
-            em.createQuery("DELETE FROM Drink").executeUpdate();
-            em.createQuery("DELETE FROM Product").executeUpdate();
-            em.createQuery("DELETE FROM Menu").executeUpdate();
+            em.createNativeQuery("TRUNCATE TABLE Food").executeUpdate();
+            em.createNativeQuery("TRUNCATE TABLE Drink").executeUpdate();
+            em.createNativeQuery("TRUNCATE TABLE Product").executeUpdate();
+            em.createNativeQuery("TRUNCATE TABLE Menu").executeUpdate();
 
             // Insert new data
             Menu menu = new Menu();
