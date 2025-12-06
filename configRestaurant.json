@@ -1,11 +1,11 @@
 {
-  "name" : "La Ardei",
+  "name" : "La Andrei",
   "TVA" : 9,
   "menu" : {
-    "id" : null,
+    "id" : 6,
     "products" : [ {
       "name" : "Batoane de mozzarella",
-      "price" : 15.0,
+      "price" : 17.0,
       "vegetarian" : true,
       "type" : "APPETIZER",
       "weight" : 200
@@ -23,7 +23,7 @@
       "weight" : 450
     }, {
       "name" : "Paste Carbonara",
-      "price" : 52.5,
+      "price" : 37.0,
       "vegetarian" : false,
       "type" : "MAIN_COURSE",
       "weight" : 400
@@ -41,7 +41,7 @@
       "weight" : 350
     }, {
       "name" : "Cheesecake",
-      "price" : 30.0,
+      "price" : 20.0,
       "vegetarian" : true,
       "type" : "DESSERT",
       "weight" : 300
@@ -53,25 +53,25 @@
       "volume" : 400
     }, {
       "name" : "Apa plata",
-      "price" : 8.0,
+      "price" : 10.0,
       "vegetarian" : true,
       "type" : "COOLING_DRINK",
       "volume" : 500
     }, {
       "name" : "Bere",
-      "price" : 8.0,
+      "price" : 15.0,
       "vegetarian" : true,
       "type" : "ALCOHOL_DRINK",
       "volume" : 500
     }, {
       "name" : "Vin alb sec",
-      "price" : 8.0,
+      "price" : 20.0,
       "vegetarian" : true,
       "type" : "ALCOHOL_DRINK",
       "volume" : 500
     }, {
       "name" : "Coniac",
-      "price" : 8.0,
+      "price" : 25.0,
       "vegetarian" : true,
       "type" : "ALCOHOL_DRINK",
       "volume" : 500

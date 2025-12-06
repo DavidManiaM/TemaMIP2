@@ -8,5 +8,6 @@ module org.example.tema2 {
     opens org.example.tema2.structure to com.fasterxml.jackson.databind, org.hibernate.orm.core;
     exports org.example.tema2.structure;
     exports org.example.tema2;
+    exports org.example.tema2.structure.utils;
     opens org.example.tema2 to javafx.fxml;
 }

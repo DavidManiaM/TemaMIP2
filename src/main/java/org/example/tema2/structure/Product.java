@@ -67,6 +67,11 @@ public abstract /*sealed*/ class Product /*permits Food, Drink */{
         this.vegetarian.set(vegetarian);
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+
     @Override
     public String toString() {
         return "> " + name.get() + " – " + price.get() + " RON";

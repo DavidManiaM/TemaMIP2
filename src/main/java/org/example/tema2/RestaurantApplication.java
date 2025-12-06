@@ -7,6 +7,7 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -28,7 +29,10 @@ import java.util.List;
 
 public class RestaurantApplication extends Application {
 
-    private Restaurant restaurant;
+    private Restaurant restaurant = new Restaurant("La Ardei");
+    private ObjectMapper mapper = new ObjectMapper();
+    private Path RestaurantConfigFilePath = Path.of("configRestaurant.json");
+    private Path MenuConfigFilePath = Path.of("configMenu.json");
 
     @Override
     public void start(Stage stage) {
@@ -76,8 +80,9 @@ public class RestaurantApplication extends Application {
 //        stage.show();
 
 
+        deserializeRestaurant();
 
-        restaurant = new Restaurant("La Ardei");
+
         List<Product> products = restaurant.getProducts();
 
         // Left: list of products
@@ -144,33 +149,43 @@ public class RestaurantApplication extends Application {
             }
         });
 
+        ObservableList<Product> observableProducts = FXCollections.observableArrayList(restaurant.getProducts());
+        productListView.setItems(observableProducts);
+
         MenuButton menuButton = new MenuButton("File");
         MenuItem importItem = new MenuItem("Importa din BD");
         MenuItem exportItem = new MenuItem("Exporta in BD");
+        MenuItem saveItem = new MenuItem("Salveaza local");
 
         importItem.setOnAction(e -> {
             List<Product> importedProducts = importFromDB();
-            productListView.setItems(FXCollections.observableArrayList(importedProducts));
 
-            // Add to restaurant
+            // Update both the observable list AND the restaurant
+            observableProducts.setAll(importedProducts);
             restaurant.getProducts().clear();
             restaurant.getProducts().addAll(importedProducts);
 
-            // Export to JSON file
             exportToJson(restaurant);
-
             System.out.println("Import selected");
         });
 
-
         exportItem.setOnAction(e -> {
-            List<Product> currentProducts = new ArrayList<>(productListView.getItems());
-            exportToDB(currentProducts);
-            System.out.println("Export completed");
+            restaurant.getProducts().clear();
+            restaurant.getProducts().addAll(observableProducts);
+            syncMenuWithProducts(observableProducts);
+            exportToDB(restaurant.getProducts());
+        });
+
+        saveItem.setOnAction(e -> {
+            restaurant.getProducts().clear();
+            restaurant.getProducts().addAll(observableProducts);
+            syncMenuWithProducts(observableProducts);
+            serializeRestaurant();
         });
 
 
-        menuButton.getItems().addAll(importItem, exportItem);
+
+        menuButton.getItems().addAll(importItem, exportItem, saveItem);
 
         VBox topBox = new VBox(10, menuButton, root);
         topBox.setAlignment(Pos.TOP_LEFT);
@@ -181,20 +196,39 @@ public class RestaurantApplication extends Application {
         stage.setScene(scene);
         stage.show();
 
-
-
-
-
-
-
-
-
-
-
-        resetAndPopulateDatabase();
-
-
     }
+
+    private void syncMenuWithProducts(List<Product> source) {
+        List<Product> target = restaurant.getMenu().getProducts();
+        target.clear();
+        target.addAll(source);
+    }
+
+    private void serializeRestaurant() {
+        String jsonString = null;
+        try {
+            jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(restaurant);
+            Files.writeString(RestaurantConfigFilePath, jsonString);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+        System.out.println("Successfully wrote to '" + RestaurantConfigFilePath + "'");
+    }
+
+    private void deserializeRestaurant() {
+        try {
+            // Deserialize the Restaurant object from configRestaurant.json
+            restaurant = mapper.readValue(RestaurantConfigFilePath.toFile(), Restaurant.class);
+            System.out.println("Successfully read from '" + RestaurantConfigFilePath + "'");
+            System.out.println(restaurant);
+
+        } catch (JsonProcessingException e) {
+            System.err.println("JSON syntax or mapping error in '" + RestaurantConfigFilePath + "'. Please check the file content.");
+        } catch (IOException e) {
+            System.err.println("An error occurred while processing '" + RestaurantConfigFilePath + "'.");
+        }
+    }
+
 
     private List<Product> importFromDB() {
         EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
@@ -224,17 +258,20 @@ public class RestaurantApplication extends Application {
             em.getTransaction().begin();
 
             // Clear existing data
-            em.createNativeQuery("DELETE FROM Food").executeUpdate();
-            em.createNativeQuery("DELETE FROM Drink").executeUpdate();
-            em.createNativeQuery("DELETE FROM Product").executeUpdate();
-            em.createNativeQuery("DELETE FROM Menu").executeUpdate();
+            em.createQuery("DELETE FROM Product p").executeUpdate();
+            em.createQuery("DELETE FROM Menu m").executeUpdate();
 
-            // Create new menu with current products
-            Menu menu = new Menu();
-            for (Product product : products) {
-                menu.getProducts().add(product);
+            // Create a new Menu and persist it
+            Menu newMenu = new Menu();
+            em.persist(newMenu);
+
+            // Persist each product and add to menu
+            for (Product p : products) {
+                // Reset ID to null so JPA treats it as a new entity
+                p.setId(null);
+                em.persist(p);
+                newMenu.getProducts().add(p);
             }
-            em.persist(menu);
 
             em.getTransaction().commit();
         } catch (Exception e) {
@@ -247,6 +284,10 @@ public class RestaurantApplication extends Application {
             emf.close();
         }
     }
+
+
+
+
 
     private void exportToJson(Restaurant restaurant) {
         Path restaurantConfigFilePath = Path.of("configRestaurant.json");
@@ -270,36 +311,5 @@ public class RestaurantApplication extends Application {
         }
     }
 
-
-
-
-    private void resetAndPopulateDatabase() {
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
-        EntityManager em = emf.createEntityManager();
-
-        try {
-            em.getTransaction().begin();
-
-            em.createNativeQuery("TRUNCATE TABLE Food").executeUpdate();
-            em.createNativeQuery("TRUNCATE TABLE Drink").executeUpdate();
-            em.createNativeQuery("TRUNCATE TABLE Product").executeUpdate();
-            em.createNativeQuery("TRUNCATE TABLE Menu").executeUpdate();
-
-            // Insert new data
-            Menu menu = new Menu();
-            menu.initializeDefaultProducts();
-            em.persist(menu);
-
-            em.getTransaction().commit();
-        } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
-            e.printStackTrace();
-        } finally {
-            em.close();
-            emf.close();
-        }
-    }
 
 }
