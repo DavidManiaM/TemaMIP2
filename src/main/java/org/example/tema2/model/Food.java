@@ -1,16 +1,14 @@
 package org.example.tema2.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
+import jakarta.persistence.*;
+import javafx.beans.property.*;
 
 @Entity
 @DiscriminatorValue("FOOD")
 public /*sealed*/ class Food extends Product /*permits Pizza*/ {
 
-    @Column(name = "weight")
-    private int weight;
-
+    @Transient
+    private IntegerProperty weight = new SimpleIntegerProperty();
 
     public Food() {
         super();
@@ -18,12 +16,12 @@ public /*sealed*/ class Food extends Product /*permits Pizza*/ {
 
     public Food(String name, double price, int weight, Product.Type type) {
         super(name, price,  type);
-        this.weight = weight;
+        this.weight.set(weight);
     }
 
     public Food(String name, double price, int weight, Product.Type type, boolean isVegetarian) {
         super(name, price,  type, isVegetarian);
-        this.weight = weight;
+        this.weight.set(weight);
     }
 
     @Override
@@ -31,11 +29,14 @@ public /*sealed*/ class Food extends Product /*permits Pizza*/ {
         return super.toString() + " – Gramaj: " + weight + "g";
     }
 
+    @Column(name = "weight")
+    @Access(AccessType.PROPERTY)
     public int getWeight() {
-        return weight;
+        return weight.get();
+    }
+    public void setWeight(int weight) {
+        this.weight.set(weight);
     }
 
-    public void setWeight(int weight) {
-        this.weight = weight;
-    }
+    public IntegerProperty weightProperty() { return this.weight; }
 }

@@ -1,15 +1,14 @@
 package org.example.tema2.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
+import jakarta.persistence.*;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 
 @Entity
 @DiscriminatorValue("DRINK")
 public final class Drink extends Product {
 
-    @Column(name = "volume")
-    private int volume;
+    private IntegerProperty volume = new SimpleIntegerProperty();
 
     public Drink() {
         super();
@@ -17,12 +16,12 @@ public final class Drink extends Product {
 
     public Drink(String name, double price, int volume, Product.Type type) {
         super(name, price, type);
-        this.volume = volume;
+        this.volume.set(volume);
     }
 
     public Drink(String name, double price, int volume, Product.Type type, boolean isVegetarian) {
         super(name, price, type, isVegetarian);
-        this.volume = volume;
+        this.volume.set(volume);
     }
 
     @Override
@@ -30,13 +29,16 @@ public final class Drink extends Product {
         return super.toString() + " – Volum: " + volume + "ml";
     }
 
+    @Column(name = "volume")
+    @Access(AccessType.PROPERTY)
     public int getVolume() {
-        return volume;
+        return volume.get();
+    }
+    public void setVolume(int volume) {
+        this.volume.set(volume);
     }
 
-    public void setVolume(int volume) {
-        this.volume = volume;
-    }
+    public IntegerProperty volumeProperty() { return this.volume; }
 
 }
 

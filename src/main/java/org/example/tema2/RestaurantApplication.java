@@ -87,24 +87,23 @@ public class RestaurantApplication extends Application {
         productListView.setPrefWidth(400);
 
         // Right
-        Label titleLabel = new Label("Editor de produse");
-        TextField nameField = new TextField();
-        nameField.setPromptText("Nume produs");
-        TextField priceField = new TextField();
-        priceField.setPromptText("Pret");
-        TextArea summaryArea = new TextArea();
-        summaryArea.setEditable(false);
-        summaryArea.setPrefRowCount(10);
+        Label titleLabel = new Label("Detalii despre produs");
+        Label nameLabel = new Label();
+        Label priceLabel = new Label();
+        Label volumeWeightLabelText = new Label("Volum / gramaj: ");
+        Label volumeWeightLabelValue = new Label();
 
         GridPane formGrid = new GridPane();
         formGrid.setHgap(10);
         formGrid.setVgap(10);
-        formGrid.add(new Label("Nume:"), 0, 0);
-        formGrid.add(nameField, 1, 0);
-        formGrid.add(new Label("Pret:"), 0, 1);
-        formGrid.add(priceField, 1, 1);
+        formGrid.add(new Label("Nume: "), 0, 0);
+        formGrid.add(nameLabel, 1, 0);
+        formGrid.add(new Label("Pret: "), 0, 1);
+        formGrid.add(priceLabel, 1, 1);
+        formGrid.add(volumeWeightLabelText, 0, 2);
+        formGrid.add(volumeWeightLabelValue, 1, 2);
 
-        VBox rightBox = new VBox(10, titleLabel, formGrid, summaryArea);
+        VBox rightBox = new VBox(10, titleLabel, formGrid);
         rightBox.setAlignment(Pos.TOP_CENTER);
         rightBox.setPadding(new Insets(10));
         rightBox.setPrefWidth(300);
@@ -116,21 +115,39 @@ public class RestaurantApplication extends Application {
         productListView.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
             // Unbind from the old product first
             if (oldP != null) {
-                nameField.textProperty().unbindBidirectional(oldP.nameProperty());
-                Bindings.unbindBidirectional(priceField.textProperty(), oldP.priceProperty());
+                nameLabel.textProperty().unbindBidirectional(oldP.nameProperty());
+                Bindings.unbindBidirectional(priceLabel.textProperty(), oldP.priceProperty());
+
+                if(oldP instanceof Food)
+                    Bindings.unbindBidirectional(volumeWeightLabelValue.textProperty(), ((Food)oldP).weightProperty());
+                if(oldP instanceof Drink)
+                    Bindings.unbindBidirectional(volumeWeightLabelValue.textProperty(), ((Drink)oldP).volumeProperty());
+
             }
 
             if (newP != null) {
-                nameField.setText(newP.getName());
-                priceField.setText(String.valueOf(newP.getPrice()));
-                summaryArea.setText(newP.getName());
+                nameLabel.setText(newP.getName());
+                priceLabel.setText(String.valueOf(newP.getPrice()));
+                if(newP instanceof Food) {
+                    volumeWeightLabelText.setText("Gramaj: ");
+                    volumeWeightLabelValue.setText(String.valueOf(((Food) newP).getWeight()));
+                }
+                if (newP instanceof Drink) {
+                    volumeWeightLabelText.setText("Volum: ");
+                    volumeWeightLabelValue.setText(String.valueOf(((Drink) newP).getVolume()));
+                }
 
-                nameField.textProperty().bindBidirectional(newP.nameProperty());
-                Bindings.bindBidirectional(priceField.textProperty(), newP.priceProperty(), new javafx.util.converter.NumberStringConverter());
+                nameLabel.textProperty().bindBidirectional(newP.nameProperty());
+                Bindings.bindBidirectional(priceLabel.textProperty(), newP.priceProperty(), new javafx.util.converter.NumberStringConverter());
+
+                if(oldP instanceof Food)
+                    Bindings.bindBidirectional(volumeWeightLabelValue.textProperty(), ((Food)oldP).weightProperty(), new javafx.util.converter.NumberStringConverter());
+                if(oldP instanceof Drink)
+                    Bindings.bindBidirectional(volumeWeightLabelValue.textProperty(), ((Drink)oldP).volumeProperty(), new javafx.util.converter.NumberStringConverter());
             } else {
-                nameField.clear();
-                priceField.clear();
-                summaryArea.clear();
+                nameLabel.setText("");
+                priceLabel.setText("");
+                volumeWeightLabelValue.setText("");
             }
         });
 
