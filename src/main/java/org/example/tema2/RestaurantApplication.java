@@ -37,49 +37,6 @@ public class RestaurantApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-//        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
-//        Scene scene = new Scene(fxmlLoader.load(), 320, 240);
-//        stage.setTitle("Hello!");
-//        stage.setScene(scene);
-//        stage.show();
-//        StringProperty name = new SimpleStringProperty("Andei");
-//        Label nameLabel = new Label();
-//        nameLabel.textProperty().bind(name);
-//        System.out.println(name.getValue());
-//
-//        name.setValue("Maria");
-//        System.out.println(name.getValue());
-//
-//        Scene scene = new Scene(nameLabel, 300, 250);
-//        stage.setTitle("Restaurant");
-//        stage.setScene(scene);
-//        Box box = new Box();
-//        box.setLayoutX(300);
-//        box.setLayoutY(300);
-//        box.setStyle("-fx-background-color: black");
-//        stage.show();
-
-
-
-//        Restaurant restaurant = new Restaurant("La Ardei");
-//        List<Product> products = restaurant.getProducts();
-//
-//
-//        GridPane formGrid = new GridPane();
-//        formGrid.setHgap(10);
-//        formGrid.setVgap(10);
-//        formGrid.add(new Label("Name:"), 0, 0);
-//        formGrid.add(nameField, 1, 0);
-//
-//        VBox root = new VBox(15, titleLabel, formGrid, saveButton, summaryArea);
-//        root.setAlignment(Pos.TOP_CENTER);
-//        root.setPadding(new Insets(20));
-//
-//        Scene scene = new Scene(root, 400, 450);
-//        stage.setTitle("Profile App - Reactive");
-//        stage.setScene(scene);
-//        stage.show();
-
 
         deserializeRestaurant();
 
@@ -90,17 +47,6 @@ public class RestaurantApplication extends Application {
         ListView<Product> productListView = new ListView<>();
         productListView.setItems(FXCollections.observableArrayList(products));
         productListView.setPrefWidth(400);
-//        productListView.setCellFactory(lv -> new ListCell<>() {
-//            @Override
-//            protected void updateItem(Product p, boolean empty) {
-//                super.updateItem(p, empty);
-//                if (empty || p == null) {
-//                    setText(null);
-//                } else {
-//                    setText(p.toString());
-//                }
-//            }
-//        });
 
         // Right
         Label titleLabel = new Label("Editor de produse");
@@ -234,15 +180,10 @@ public class RestaurantApplication extends Application {
 
     private List<Product> importFromDB() {
         EntityManager em = emf.createEntityManager();
-
         List<Product> products = new ArrayList<>();
         try {
-            Menu menu = em.createQuery("SELECT m FROM Menu m", Menu.class)
-                    .setMaxResults(1)
-                    .getSingleResult();
-            products = em.createQuery(
-                            "SELECT p FROM Product p WHERE p MEMBER OF :menuProducts", Product.class)
-                    .setParameter("menuProducts", menu.getProducts())
+            // Directly query for all products instead of through a Menu
+            products = em.createQuery("SELECT p FROM Product p", Product.class)
                     .getResultList();
         } catch (Exception e) {
             e.printStackTrace();
@@ -251,6 +192,7 @@ public class RestaurantApplication extends Application {
         }
         return products;
     }
+
 
 
     private void exportToDB(List<Product> products) {
@@ -314,9 +256,13 @@ public class RestaurantApplication extends Application {
     }
 
     @Override
-    public void stop() {
-        if (emf != null && emf.isOpen()) {
-            emf.close();
+    public void stop() throws Exception {
+        try {
+            if (emf != null && emf.isOpen()) {
+                emf.close();
+            }
+        } finally {
+            super.stop();
         }
     }
 

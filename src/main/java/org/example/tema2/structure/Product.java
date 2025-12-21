@@ -78,7 +78,15 @@ public abstract /*sealed*/ class Product /*permits Food, Drink */{
 
     @Override
     public String toString() {
-        return "> " + name.get() + " – " + price.get() + " RON";
+        String nameValue = (name != null) ? name.get() : "";
+        String priceValue;
+        if (price != null) {
+            // DoubleProperty#get() returns a primitive double, so convert to String
+            priceValue = String.valueOf(price.get());
+        } else {
+            priceValue = "";
+        }
+        return "> " + nameValue + " – " + priceValue + " RON";
     }
 
     // JPA-compatible getters/setters that sync with properties
