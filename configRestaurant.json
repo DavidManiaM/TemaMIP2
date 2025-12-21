@@ -4,84 +4,84 @@
   "menu" : {
     "id" : 6,
     "products" : [ {
-      "id" : 241,
+      "id" : 277,
       "name" : "Batoane de mozzarella",
       "price" : 16.0,
       "vegetarian" : true,
       "type" : "APPETIZER",
       "weight" : 200
     }, {
-      "id" : 242,
+      "id" : 278,
       "name" : "Cartofi prajiti cu usturoi si parmezan",
       "price" : 18.5,
       "vegetarian" : true,
       "type" : "APPETIZER",
       "weight" : 250
     }, {
-      "id" : 243,
+      "id" : 279,
       "name" : "Pizza Margherita",
       "price" : 38.0,
       "vegetarian" : true,
       "type" : "MAIN_COURSE",
       "weight" : 450
     }, {
-      "id" : 244,
+      "id" : 280,
       "name" : "Paste Carbonara",
       "price" : 37.0,
       "vegetarian" : false,
       "type" : "MAIN_COURSE",
       "weight" : 400
     }, {
-      "id" : 245,
+      "id" : 281,
       "name" : "Lava Cake",
       "price" : 20.0,
       "vegetarian" : true,
       "type" : "DESSERT",
       "weight" : 300
     }, {
-      "id" : 246,
+      "id" : 282,
       "name" : "Tiramisu",
       "price" : 22.0,
       "vegetarian" : true,
       "type" : "DESSERT",
       "weight" : 350
     }, {
-      "id" : 247,
+      "id" : 283,
       "name" : "Cheesecake",
       "price" : 20.0,
       "vegetarian" : true,
       "type" : "DESSERT",
       "weight" : 300
     }, {
-      "id" : 248,
+      "id" : 284,
       "name" : "Limonada",
       "price" : 15.0,
       "vegetarian" : true,
       "type" : "COOLING_DRINK",
       "volume" : 400
     }, {
-      "id" : 249,
+      "id" : 285,
       "name" : "Apa plata",
       "price" : 10.0,
       "vegetarian" : true,
       "type" : "COOLING_DRINK",
       "volume" : 500
     }, {
-      "id" : 250,
+      "id" : 286,
       "name" : "Bere",
       "price" : 15.0,
       "vegetarian" : true,
       "type" : "ALCOHOL_DRINK",
       "volume" : 500
     }, {
-      "id" : 251,
+      "id" : 287,
       "name" : "Vin alb sec",
       "price" : 20.0,
       "vegetarian" : true,
       "type" : "ALCOHOL_DRINK",
       "volume" : 500
     }, {
-      "id" : 252,
+      "id" : 288,
       "name" : "Coniac",
       "price" : 25.0,
       "vegetarian" : true,

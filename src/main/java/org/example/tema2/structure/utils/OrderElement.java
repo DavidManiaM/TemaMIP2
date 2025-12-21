@@ -1,7 +1,7 @@
 package org.example.tema2.structure.utils;
 
 
-import org.example.tema2.structure.Product;
+import org.example.tema2.model.Product;
 
 public class OrderElement {
     public int quantity;

@@ -1,5 +1,7 @@
 package org.example.tema2.structure;
 
+import org.example.tema2.model.Food;
+import org.example.tema2.model.Product;
 import org.example.tema2.structure.utils.OrderElement;
 import org.example.tema2.structure.utils.SpecialOffer;
 

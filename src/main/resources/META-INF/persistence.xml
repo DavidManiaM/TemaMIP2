@@ -4,9 +4,9 @@
         <!-- Providerul JPA -->
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
-        <class>org.example.tema2.structure.Product</class>
-        <class>org.example.tema2.structure.Drink</class>
-        <class>org.example.tema2.structure.Food</class>
+        <class>org.example.tema2.model.Product</class>
+        <class>org.example.tema2.model.Drink</class>
+        <class>org.example.tema2.model.Food</class>
         <class>org.example.tema2.structure.Menu</class>
 
         <properties>

@@ -1,6 +1,5 @@
-package org.example.tema2.structure;
+package org.example.tema2.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.persistence.*;
 import javafx.beans.property.*;

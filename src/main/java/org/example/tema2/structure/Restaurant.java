@@ -1,6 +1,7 @@
 package org.example.tema2.structure;
 
 import com.fasterxml.jackson.annotation.*;
+import org.example.tema2.model.Product;
 
 import java.util.ArrayList;
 import java.util.List;

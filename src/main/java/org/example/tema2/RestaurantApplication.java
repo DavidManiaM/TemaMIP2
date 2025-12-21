@@ -8,6 +8,7 @@ import jakarta.persistence.Persistence;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -17,7 +18,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.beans.binding.Bindings;
-import org.example.tema2.structure.Product;
+import org.example.tema2.model.Drink;
+import org.example.tema2.model.Food;
+import org.example.tema2.model.Product;
 import org.example.tema2.structure.Restaurant;
 import org.example.tema2.structure.Menu;
 
@@ -34,13 +37,210 @@ public class RestaurantApplication extends Application {
     private Path restaurantConfigFilePath = Path.of("configRestaurant.json");
     private Path menuConfigFilePath = Path.of("configMenu.json");
     private final EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
+    FilteredList<Product> filtered;
 
     @Override
     public void start(Stage stage) {
 
         deserializeRestaurant();
 
+        // Login
 
+        Button buttonGuest = new Button("Client");
+        buttonGuest.setPrefSize(100, 50);
+        Button buttonWaiter = new Button("Ospatar");
+        buttonWaiter.setPrefSize(100, 50);
+        Button buttonAdmin = new Button("Admin");
+        buttonAdmin.setPrefSize(100, 50);
+        HBox root = new HBox(buttonGuest, buttonWaiter, buttonAdmin);
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(10, 10, 10, 10));
+        root.setSpacing(10);
+        Scene scene = new Scene(root, 720, 450);
+        stage.setTitle("Restaurant \"La Ardei\"");
+        stage.setScene(scene);
+        stage.show();
+
+        buttonGuest.setOnAction(e -> {
+            buttonGuestAction(stage);
+        });
+
+        buttonWaiter.setOnAction(e -> {
+
+        });
+
+        buttonAdmin.setOnAction(e -> {
+
+        });
+
+
+        // Iteratia6(stage);
+
+    }
+
+    private void buttonGuestAction(Stage stage) {
+        List<Product> products = restaurant.getProducts();
+
+        // Left: list of products
+        ListView<Product> productListView = new ListView<>();
+        productListView.setItems(FXCollections.observableArrayList(products));
+        productListView.setPrefWidth(400);
+
+        // Right
+        Label titleLabel = new Label("Editor de produse");
+        TextField nameField = new TextField();
+        nameField.setPromptText("Nume produs");
+        TextField priceField = new TextField();
+        priceField.setPromptText("Pret");
+        TextArea summaryArea = new TextArea();
+        summaryArea.setEditable(false);
+        summaryArea.setPrefRowCount(10);
+
+        GridPane formGrid = new GridPane();
+        formGrid.setHgap(10);
+        formGrid.setVgap(10);
+        formGrid.add(new Label("Nume:"), 0, 0);
+        formGrid.add(nameField, 1, 0);
+        formGrid.add(new Label("Pret:"), 0, 1);
+        formGrid.add(priceField, 1, 1);
+
+        VBox rightBox = new VBox(10, titleLabel, formGrid, summaryArea);
+        rightBox.setAlignment(Pos.TOP_CENTER);
+        rightBox.setPadding(new Insets(10));
+        rightBox.setPrefWidth(300);
+
+        // Main layout: left and right sections
+        HBox root = new HBox(20, productListView, rightBox);
+        root.setPadding(new Insets(20));
+
+        productListView.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
+            // Unbind from the old product first
+            if (oldP != null) {
+                nameField.textProperty().unbindBidirectional(oldP.nameProperty());
+                Bindings.unbindBidirectional(priceField.textProperty(), oldP.priceProperty());
+            }
+
+            if (newP != null) {
+                nameField.setText(newP.getName());
+                priceField.setText(String.valueOf(newP.getPrice()));
+                summaryArea.setText(newP.getName());
+
+                nameField.textProperty().bindBidirectional(newP.nameProperty());
+                Bindings.bindBidirectional(priceField.textProperty(), newP.priceProperty(), new javafx.util.converter.NumberStringConverter());
+            } else {
+                nameField.clear();
+                priceField.clear();
+                summaryArea.clear();
+            }
+        });
+
+        ObservableList<Product> observableProducts = FXCollections.observableArrayList(restaurant.getProducts());
+        filtered = new FilteredList<>(observableProducts, t -> true);
+        productListView.setItems(filtered);
+
+        MenuButton filterDropdown = new MenuButton("Filtre");
+
+        CheckBox vegetarianCheckBox = new CheckBox();
+        HBox vegetarianHBox = new HBox(10);
+        vegetarianHBox.getChildren().addAll(
+                new Label("Doar vegetariene"),
+                vegetarianCheckBox
+        );
+
+        CheckBox foodCheckBox = new CheckBox("Mancare");
+        foodCheckBox.setSelected(true);
+        CheckBox drinkCheckBox = new CheckBox("Bautura");
+        drinkCheckBox.setSelected(true);
+        HBox foodTypeHBox = new HBox(10);
+        foodTypeHBox.getChildren().addAll(
+                new Label("Tip"),
+                foodCheckBox,
+                drinkCheckBox
+        );
+
+
+        Spinner<Integer> minPriceSpinner = new Spinner<>(0, 500, 0);
+        minPriceSpinner.setEditable(true); // allows typing
+        Spinner<Integer> maxPriceSpinner = new Spinner<>(0, 500, 500);
+        maxPriceSpinner.setEditable(true); // allows typing
+
+        HBox priceIntervalHBox = new HBox(10);
+        priceIntervalHBox.getChildren().addAll(
+                new Label("Tip"),
+                minPriceSpinner,
+                maxPriceSpinner
+        );
+
+        Button applyFiltersButton = new Button("Aplica");
+
+        CustomMenuItem vegetarianHBoxDropdownItem = new CustomMenuItem(vegetarianHBox);
+        vegetarianHBoxDropdownItem.setHideOnClick(false); // optional
+
+        CustomMenuItem foodTypeHBoxDropdownItem = new CustomMenuItem(foodTypeHBox);
+        foodTypeHBoxDropdownItem.setHideOnClick(false); // optional
+
+        CustomMenuItem priceIntervalHBoxDropdownItem = new CustomMenuItem(priceIntervalHBox);
+        priceIntervalHBoxDropdownItem.setHideOnClick(false); // optional
+
+        CustomMenuItem applyFiltersButtonDropdownItem = new CustomMenuItem(applyFiltersButton);
+
+        filterDropdown.getItems().addAll(vegetarianHBoxDropdownItem, foodTypeHBoxDropdownItem,
+                priceIntervalHBoxDropdownItem, applyFiltersButtonDropdownItem);
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("Nume...");
+        searchField.setMaxWidth(300);
+        Button searchButton = new Button("Cauta");
+        searchButton.setOnAction(e -> {
+            applyFiltersAndSearch(observableProducts, productListView, vegetarianCheckBox, foodCheckBox,
+                    drinkCheckBox, minPriceSpinner, maxPriceSpinner, searchField);
+        });
+        applyFiltersButton.setOnAction(e -> {
+            applyFiltersAndSearch(observableProducts, productListView, vegetarianCheckBox, foodCheckBox,
+                    drinkCheckBox, minPriceSpinner, maxPriceSpinner, searchField);
+        });
+
+        HBox topBox = new HBox(10, filterDropdown, searchField, searchButton);
+        topBox.setAlignment(Pos.TOP_LEFT);
+        topBox.setPadding(new Insets(10));
+
+        VBox rootBox = new VBox(10, topBox, root);
+
+        Scene scene = new Scene(rootBox, 720, 450);
+        stage.setTitle("Restaurant \"La Ardei\"");
+        stage.setScene(scene);
+        // stage.show();
+    }
+
+    private void applyFiltersAndSearch(ObservableList<Product> observableProducts, ListView<Product> productListView,
+                                       CheckBox vegetarianCheckBox, CheckBox foodCheckBox, CheckBox drinkCheckBox,
+                                       Spinner<Integer> minPriceSpinner, Spinner<Integer> maxPriceSpinner,
+                                       TextField searchField) {
+        filtered.setPredicate(product -> {
+            // 1. Text search
+            String text = searchField.getText().toLowerCase();
+            boolean matchesText = text.isEmpty() || product.getName().toLowerCase().contains(text);
+
+            // 2. Vegetarian filter
+            boolean matchesVegetarian = !vegetarianCheckBox.isSelected() || product.isVegetarian();
+
+            // 3. Type filter
+            boolean matchesType =
+                    (foodCheckBox.isSelected() && product instanceof Food)
+                            || (drinkCheckBox.isSelected() && product instanceof Drink)
+                            || (!foodCheckBox.isSelected() && !drinkCheckBox.isSelected()); // optional: if none selected, show all
+
+            // 4. Price filter
+            double price = product.getPrice();
+            boolean matchesPrice = price >= minPriceSpinner.getValue() && price <= maxPriceSpinner.getValue();
+
+            // Combine all filters
+            return matchesText && matchesVegetarian && matchesType && matchesPrice;
+        });
+
+    }
+
+    private void Iteratia6(Stage stage) {
         List<Product> products = restaurant.getProducts();
 
         // Left: list of products
@@ -142,8 +342,7 @@ public class RestaurantApplication extends Application {
         Scene scene = new Scene(topBox, 720, 450);
         stage.setTitle("Restaurant \"La Ardei\"");
         stage.setScene(scene);
-        stage.show();
-
+        // stage.show();
     }
 
     private void syncMenuWithProducts(List<Product> source) {

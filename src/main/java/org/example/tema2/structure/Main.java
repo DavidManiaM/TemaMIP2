@@ -2,6 +2,10 @@ package org.example.tema2.structure;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.tema2.model.Drink;
+import org.example.tema2.model.Food;
+import org.example.tema2.model.Pizza;
+import org.example.tema2.model.Product;
 
 import java.io.IOException;
 import java.nio.file.Files;
