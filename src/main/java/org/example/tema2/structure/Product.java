@@ -67,6 +67,10 @@ public abstract /*sealed*/ class Product /*permits Food, Drink */{
         this.vegetarian.set(vegetarian);
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }

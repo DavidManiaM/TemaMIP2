@@ -5,7 +5,7 @@
     "id" : 6,
     "products" : [ {
       "name" : "Batoane de mozzarella",
-      "price" : 17.0,
+      "price" : 16.0,
       "vegetarian" : true,
       "type" : "APPETIZER",
       "weight" : 200
@@ -17,7 +17,7 @@
       "weight" : 250
     }, {
       "name" : "Pizza Margherita",
-      "price" : 45.0,
+      "price" : 38.0,
       "vegetarian" : true,
       "type" : "MAIN_COURSE",
       "weight" : 450

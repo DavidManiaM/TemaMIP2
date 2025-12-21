@@ -35,4 +35,7 @@ public /*sealed*/ class Food extends Product /*permits Pizza*/ {
         return weight;
     }
 
+    public void setWeight(int weight) {
+        this.weight = weight;
+    }
 }

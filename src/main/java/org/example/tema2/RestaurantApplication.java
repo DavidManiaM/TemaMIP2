@@ -31,8 +31,9 @@ public class RestaurantApplication extends Application {
 
     private Restaurant restaurant = new Restaurant("La Ardei");
     private ObjectMapper mapper = new ObjectMapper();
-    private Path RestaurantConfigFilePath = Path.of("configRestaurant.json");
-    private Path MenuConfigFilePath = Path.of("configMenu.json");
+    private Path restaurantConfigFilePath = Path.of("configRestaurant.json");
+    private Path menuConfigFilePath = Path.of("configMenu.json");
+    private final EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
 
     @Override
     public void start(Stage stage) {
@@ -164,6 +165,7 @@ public class RestaurantApplication extends Application {
             observableProducts.setAll(importedProducts);
             restaurant.getProducts().clear();
             restaurant.getProducts().addAll(importedProducts);
+            syncMenuWithProducts(observableProducts);
 
             exportToJson(restaurant);
             System.out.println("Import selected");
@@ -208,30 +210,29 @@ public class RestaurantApplication extends Application {
         String jsonString = null;
         try {
             jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(restaurant);
-            Files.writeString(RestaurantConfigFilePath, jsonString);
+            Files.writeString(restaurantConfigFilePath, jsonString);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
-        System.out.println("Successfully wrote to '" + RestaurantConfigFilePath + "'");
+        System.out.println("Successfully wrote to '" + restaurantConfigFilePath + "'");
     }
 
     private void deserializeRestaurant() {
         try {
             // Deserialize the Restaurant object from configRestaurant.json
-            restaurant = mapper.readValue(RestaurantConfigFilePath.toFile(), Restaurant.class);
-            System.out.println("Successfully read from '" + RestaurantConfigFilePath + "'");
+            restaurant = mapper.readValue(restaurantConfigFilePath.toFile(), Restaurant.class);
+            System.out.println("Successfully read from '" + restaurantConfigFilePath + "'");
             System.out.println(restaurant);
 
         } catch (JsonProcessingException e) {
-            System.err.println("JSON syntax or mapping error in '" + RestaurantConfigFilePath + "'. Please check the file content.");
+            System.err.println("JSON syntax or mapping error in '" + restaurantConfigFilePath + "'. Please check the file content.");
         } catch (IOException e) {
-            System.err.println("An error occurred while processing '" + RestaurantConfigFilePath + "'.");
+            System.err.println("An error occurred while processing '" + restaurantConfigFilePath + "'.");
         }
     }
 
 
     private List<Product> importFromDB() {
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
         EntityManager em = emf.createEntityManager();
 
         List<Product> products = new ArrayList<>();
@@ -244,14 +245,13 @@ public class RestaurantApplication extends Application {
             e.printStackTrace();
         } finally {
             em.close();
-            emf.close();
         }
         return products;
     }
 
 
     private void exportToDB(List<Product> products) {
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
+//        EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
         EntityManager em = emf.createEntityManager();
 
         try {
@@ -281,7 +281,6 @@ public class RestaurantApplication extends Application {
             e.printStackTrace();
         } finally {
             em.close();
-            emf.close();
         }
     }
 
@@ -290,8 +289,8 @@ public class RestaurantApplication extends Application {
 
 
     private void exportToJson(Restaurant restaurant) {
-        Path restaurantConfigFilePath = Path.of("configRestaurant.json");
-        ObjectMapper mapper = new ObjectMapper();
+//        Path restaurantConfigFilePath = Path.of("configRestaurant.json");
+//        ObjectMapper mapper = new ObjectMapper();
 
         try {
             // Create parent directories if they don't exist
@@ -310,6 +309,14 @@ public class RestaurantApplication extends Application {
             e.printStackTrace();
         }
     }
+
+    @Override
+    public void stop() {
+        if (emf != null && emf.isOpen()) {
+            emf.close();
+        }
+    }
+
 
 
 }
