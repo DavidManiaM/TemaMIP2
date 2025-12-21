@@ -41,11 +41,11 @@ public abstract /*sealed*/ class Product /*permits Food, Drink */{
     }
 
     @Transient
-    private final StringProperty name = new SimpleStringProperty(this, "name", "");
+    private StringProperty name = new SimpleStringProperty(this, "name", "");
     @Transient
-    private final DoubleProperty price = new SimpleDoubleProperty(this, "price", 0.0);
+    private DoubleProperty price = new SimpleDoubleProperty(this, "price", 0.0);
     @Transient
-    private final BooleanProperty vegetarian = new SimpleBooleanProperty(this, "vegetarian", false);
+    private BooleanProperty vegetarian = new SimpleBooleanProperty(this, "vegetarian", false);
 
     @Enumerated(EnumType.STRING)
     private Type type;

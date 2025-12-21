@@ -240,7 +240,10 @@ public class RestaurantApplication extends Application {
             Menu menu = em.createQuery("SELECT m FROM Menu m", Menu.class)
                     .setMaxResults(1)
                     .getSingleResult();
-            products.addAll(menu.getProducts());
+            products = em.createQuery(
+                            "SELECT p FROM Product p WHERE p MEMBER OF :menuProducts", Product.class)
+                    .setParameter("menuProducts", menu.getProducts())
+                    .getResultList();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
