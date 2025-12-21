@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class RestaurantApplication extends Application {
 
@@ -39,6 +40,9 @@ public class RestaurantApplication extends Application {
     private final EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
     FilteredList<Product> filtered;
 
+    ListView<Product> productListView;
+    VBox productDetailsView;
+
     @Override
     public void start(Stage stage) {
 
@@ -48,11 +52,9 @@ public class RestaurantApplication extends Application {
 
         Button buttonGuest = new Button("Client");
         buttonGuest.setPrefSize(100, 50);
-        Button buttonWaiter = new Button("Ospatar");
-        buttonWaiter.setPrefSize(100, 50);
-        Button buttonAdmin = new Button("Admin");
-        buttonAdmin.setPrefSize(100, 50);
-        HBox root = new HBox(buttonGuest, buttonWaiter, buttonAdmin);
+        Button buttonWaiterManager = new Button("Ospatar sau Manager");
+        buttonWaiterManager.setPrefSize(100, 50);
+        HBox root = new HBox(buttonGuest, buttonWaiterManager);
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(10, 10, 10, 10));
         root.setSpacing(10);
@@ -61,16 +63,14 @@ public class RestaurantApplication extends Application {
         stage.setScene(scene);
         stage.show();
 
+        initViews();
+
         buttonGuest.setOnAction(e -> {
             buttonGuestAction(stage);
         });
 
-        buttonWaiter.setOnAction(e -> {
-
-        });
-
-        buttonAdmin.setOnAction(e -> {
-
+        buttonWaiterManager.setOnAction(e -> {
+            buttonLoginAction(stage); // To Login
         });
 
 
@@ -78,11 +78,11 @@ public class RestaurantApplication extends Application {
 
     }
 
-    private void buttonGuestAction(Stage stage) {
+    private void initViews() {
         List<Product> products = restaurant.getProducts();
 
         // Left: list of products
-        ListView<Product> productListView = new ListView<>();
+        productListView = new ListView<>();
         productListView.setItems(FXCollections.observableArrayList(products));
         productListView.setPrefWidth(400);
 
@@ -103,14 +103,10 @@ public class RestaurantApplication extends Application {
         formGrid.add(volumeWeightLabelText, 0, 2);
         formGrid.add(volumeWeightLabelValue, 1, 2);
 
-        VBox rightBox = new VBox(10, titleLabel, formGrid);
-        rightBox.setAlignment(Pos.TOP_CENTER);
-        rightBox.setPadding(new Insets(10));
-        rightBox.setPrefWidth(300);
-
-        // Main layout: left and right sections
-        HBox root = new HBox(20, productListView, rightBox);
-        root.setPadding(new Insets(20));
+        productDetailsView = new VBox(10, titleLabel, formGrid);
+        productDetailsView.setAlignment(Pos.TOP_CENTER);
+        productDetailsView.setPadding(new Insets(10));
+        productDetailsView.setPrefWidth(300);
 
         productListView.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
             // Unbind from the old product first
@@ -150,6 +146,14 @@ public class RestaurantApplication extends Application {
                 volumeWeightLabelValue.setText("");
             }
         });
+    }
+
+    private void buttonGuestAction(Stage stage) {
+        List<Product> products = restaurant.getProducts();
+
+        // Main layout: left and right sections
+        HBox root = new HBox(20, productListView, productDetailsView);
+        root.setPadding(new Insets(20));
 
         ObservableList<Product> observableProducts = FXCollections.observableArrayList(restaurant.getProducts());
         filtered = new FilteredList<>(observableProducts, t -> true);
@@ -255,6 +259,51 @@ public class RestaurantApplication extends Application {
             return matchesText && matchesVegetarian && matchesType && matchesPrice;
         });
 
+    }
+
+    private void buttonLoginAction(Stage stage) {
+
+        // Login
+
+        Label nameLabel = new Label("Nume: ");
+        TextField nameField = new TextField();
+
+        HBox nameContainer = new HBox(10, nameLabel, nameField);
+        nameContainer.setAlignment(Pos.CENTER);
+        nameContainer.setPadding(new Insets(10));
+        nameContainer.setSpacing(10);
+
+        Label passwordLabel = new Label("Parola: ");
+        TextField passwordField = new TextField();
+
+        HBox passwordContainer = new HBox(10, passwordLabel, passwordField);
+        passwordContainer.setAlignment(Pos.CENTER);
+        passwordContainer.setPadding(new Insets(10));
+        passwordContainer.setSpacing(10);
+
+        Button loginButton = new Button("Login");
+        loginButton.setPrefSize(100, 40);
+        loginButton.setOnAction(e -> {
+            String name = nameField.getText();
+            String password = passwordField.getText();
+            System.out.println(name + " " + password);
+            if (Objects.equals(name, "Waiter123") && Objects.equals(password, "secretPassword")) {
+                // waiterActions();
+            }
+            else if (Objects.equals(name, "MaestrulMania") && Objects.equals(password, "admin1234")) {
+                // managerActions();
+            }
+            else {
+                buttonGuestAction(stage);
+            }
+        });
+
+        VBox rootBox = new VBox(0, nameContainer, passwordContainer, loginButton);
+        rootBox.setAlignment(Pos.CENTER);
+
+        Scene scene = new Scene(rootBox, 720, 450);
+        stage.setTitle("Restaurant \"La Ardei\"");
+        stage.setScene(scene);
     }
 
     private void Iteratia6(Stage stage) {
