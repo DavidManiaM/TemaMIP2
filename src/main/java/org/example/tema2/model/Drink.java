@@ -24,10 +24,10 @@ public final class Drink extends Product {
         this.volume.set(volume);
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + " – Volum: " + volume + "ml";
-    }
+//    @Override
+//    public String toString() {
+//        return super.toString() + " – Volum: " + volume.get() + "ml";
+//    }
 
     @Column(name = "volume")
     @Access(AccessType.PROPERTY)

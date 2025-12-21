@@ -24,10 +24,10 @@ public /*sealed*/ class Food extends Product /*permits Pizza*/ {
         this.weight.set(weight);
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + " – Gramaj: " + weight + "g";
-    }
+//    @Override
+//    public String toString() {
+//        return super.toString() + " – Gramaj: " + weight.get() + "g";
+//    }
 
     @Column(name = "weight")
     @Access(AccessType.PROPERTY)

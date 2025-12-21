@@ -393,7 +393,6 @@ public class RestaurantApplication extends Application {
         }
     }
 
-
     private List<Product> importFromDB() {
         EntityManager em = emf.createEntityManager();
         List<Product> products = new ArrayList<>();
@@ -408,8 +407,6 @@ public class RestaurantApplication extends Application {
         }
         return products;
     }
-
-
 
     private void exportToDB(List<Product> products) {
 //        EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
@@ -444,10 +441,6 @@ public class RestaurantApplication extends Application {
             em.close();
         }
     }
-
-
-
-
 
     private void exportToJson(Restaurant restaurant) {
 //        Path restaurantConfigFilePath = Path.of("configRestaurant.json");
