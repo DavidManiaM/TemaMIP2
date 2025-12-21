@@ -1,8 +1,19 @@
 package org.example.tema2.structure;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+
+@Entity
+@DiscriminatorValue("DRINK")
 public final class Drink extends Product {
 
-    private final int volume;
+    @Column(name = "volume")
+    private int volume;
+
+    public Drink() {
+        super();
+    }
 
     public Drink(String name, double price, int volume, Product.Type type) {
         super(name, price, type);
@@ -21,6 +32,10 @@ public final class Drink extends Product {
 
     public int getVolume() {
         return volume;
+    }
+
+    public void setVolume(int volume) {
+        this.volume = volume;
     }
 
 }

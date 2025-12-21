@@ -3,7 +3,7 @@ package org.example.tema2.structure;
 import java.util.ArrayList;
 import java.util.List;
 
-public non-sealed class Pizza extends Food {
+public /*non-sealed*/ class Pizza extends Food {
 
     public enum Topping {
         BASE_TOPPING,

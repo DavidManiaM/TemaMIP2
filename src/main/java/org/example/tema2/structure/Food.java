@@ -1,8 +1,20 @@
 package org.example.tema2.structure;
 
-public sealed class Food extends Product permits Pizza {
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 
-    private final int weight;
+@Entity
+@DiscriminatorValue("FOOD")
+public /*sealed*/ class Food extends Product /*permits Pizza*/ {
+
+    @Column(name = "weight")
+    private int weight;
+
+
+    public Food() {
+        super();
+    }
 
     public Food(String name, double price, int weight, Product.Type type) {
         super(name, price,  type);
@@ -23,4 +35,7 @@ public sealed class Food extends Product permits Pizza {
         return weight;
     }
 
+    public void setWeight(int weight) {
+        this.weight = weight;
+    }
 }
