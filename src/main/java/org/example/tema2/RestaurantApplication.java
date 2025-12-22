@@ -35,8 +35,8 @@ public class RestaurantApplication extends Application {
 
     private static Restaurant restaurant;
     private ObjectMapper mapper = new ObjectMapper();
-    private Path restaurantConfigFilePath = Path.of("configRestaurant.json");
-    private Path menuConfigFilePath = Path.of("configMenu.json");
+    private final Path restaurantConfigFilePath = Path.of("configRestaurant.json");
+    private final Path menuConfigFilePath = Path.of("configMenu.json");
     private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
     public static FilteredList<Product> filtered;
 
@@ -207,7 +207,14 @@ public class RestaurantApplication extends Application {
         tabPane.getTabs().addAll(newOfferTab, offerHistoryTab);
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        Scene scene = new Scene(tabPane, 900, 450);
+        Button goBackButton = new Button("Inapoi");
+        goBackButton.setOnAction(e -> welcomeView());
+
+        VBox root = new VBox(10, goBackButton, tabPane);
+        root.setPadding(new Insets(10));
+        VBox.setVgrow(tabPane, Priority.ALWAYS);
+
+        Scene scene = new Scene(root, 900, 450);
         stage.setScene(scene);
     }
 

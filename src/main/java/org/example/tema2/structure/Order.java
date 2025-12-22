@@ -126,7 +126,7 @@ public class Order {
     private double discountAmount = 0.0;
 
     public Order(){
-        // activeSpecialOffer = Optional.ofNullable(pizza1Plus1Free);
+        activeSpecialOffer = Optional.empty();
     }
 
     public void applyOffer() {
@@ -135,15 +135,33 @@ public class Order {
         for(OrderElement el : elements) el.setCustomPrice(null);
 
         org.example.tema2.structure.utils.OfferManager offerManager = org.example.tema2.structure.utils.OfferManager.getInstance();
+        List<String> activeOfferNames = new ArrayList<>();
 
         if (offerManager.isOfferActive(org.example.tema2.structure.utils.OfferManager.HAPPY_HOUR_DRINKS)) {
             applyHappyHour();
+            activeOfferNames.add("Happy Hour");
         }
         if (offerManager.isOfferActive(org.example.tema2.structure.utils.OfferManager.MEAL_DEAL)) {
             applyMealDeal();
+            activeOfferNames.add("Meal Deal");
         }
         if (offerManager.isOfferActive(org.example.tema2.structure.utils.OfferManager.PARTY_PACK)) {
             applyPartyPack();
+            activeOfferNames.add("Party Pack");
+        }
+
+        if (!activeOfferNames.isEmpty()) {
+            String names = String.join(", ", activeOfferNames);
+            activeSpecialOffer = Optional.of(new SpecialOffer() {
+                @Override
+                public String getName() { return names; }
+                @Override
+                public void applyOffer() { }
+                @Override
+                public boolean isApplicable() { return true; }
+            });
+        } else {
+            activeSpecialOffer = Optional.empty();
         }
     }
 

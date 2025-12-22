@@ -4,89 +4,186 @@
   "menu" : {
     "id" : 6,
     "products" : [ {
-      "id" : 277,
+      "id" : null,
       "name" : "Batoane de mozzarella",
       "price" : 16.0,
       "vegetarian" : true,
       "type" : "APPETIZER",
       "weight" : 200
     }, {
-      "id" : 278,
+      "id" : null,
       "name" : "Cartofi prajiti cu usturoi si parmezan",
       "price" : 18.5,
       "vegetarian" : true,
       "type" : "APPETIZER",
       "weight" : 250
     }, {
-      "id" : 279,
+      "id" : null,
       "name" : "Pizza Margherita",
       "price" : 38.0,
       "vegetarian" : true,
       "type" : "MAIN_COURSE",
       "weight" : 450
     }, {
-      "id" : 280,
+      "id" : null,
       "name" : "Paste Carbonara",
       "price" : 37.0,
       "vegetarian" : false,
       "type" : "MAIN_COURSE",
       "weight" : 400
     }, {
-      "id" : 281,
+      "id" : null,
       "name" : "Lava Cake",
       "price" : 20.0,
       "vegetarian" : true,
       "type" : "DESSERT",
       "weight" : 300
     }, {
-      "id" : 282,
+      "id" : null,
       "name" : "Tiramisu",
       "price" : 22.0,
       "vegetarian" : true,
       "type" : "DESSERT",
       "weight" : 350
     }, {
-      "id" : 283,
+      "id" : null,
       "name" : "Cheesecake",
       "price" : 20.0,
       "vegetarian" : true,
       "type" : "DESSERT",
       "weight" : 300
     }, {
-      "id" : 284,
+      "id" : null,
       "name" : "Limonada",
       "price" : 15.0,
       "vegetarian" : true,
       "type" : "COOLING_DRINK",
       "volume" : 400
     }, {
-      "id" : 285,
+      "id" : null,
       "name" : "Apa plata",
       "price" : 10.0,
       "vegetarian" : true,
       "type" : "COOLING_DRINK",
       "volume" : 500
     }, {
-      "id" : 286,
+      "id" : null,
       "name" : "Bere",
       "price" : 15.0,
       "vegetarian" : true,
       "type" : "ALCOHOL_DRINK",
       "volume" : 500
     }, {
-      "id" : 287,
+      "id" : null,
       "name" : "Vin alb sec",
       "price" : 20.0,
       "vegetarian" : true,
       "type" : "ALCOHOL_DRINK",
       "volume" : 500
     }, {
-      "id" : 288,
+      "id" : null,
       "name" : "Coniac",
       "price" : 25.0,
       "vegetarian" : true,
       "type" : "ALCOHOL_DRINK",
       "volume" : 500
     } ]
-  }
+  },
+  "tables" : [ {
+    "number" : 1,
+    "currentOrder" : null
+  }, {
+    "number" : 2,
+    "currentOrder" : null
+  }, {
+    "number" : 3,
+    "currentOrder" : null
+  }, {
+    "number" : 4,
+    "currentOrder" : null
+  }, {
+    "number" : 5,
+    "currentOrder" : null
+  }, {
+    "number" : 6,
+    "currentOrder" : null
+  }, {
+    "number" : 7,
+    "currentOrder" : null
+  }, {
+    "number" : 8,
+    "currentOrder" : null
+  }, {
+    "number" : 9,
+    "currentOrder" : null
+  }, {
+    "number" : 10,
+    "currentOrder" : null
+  }, {
+    "number" : 11,
+    "currentOrder" : null
+  }, {
+    "number" : 12,
+    "currentOrder" : null
+  }, {
+    "number" : 13,
+    "currentOrder" : null
+  }, {
+    "number" : 14,
+    "currentOrder" : null
+  }, {
+    "number" : 15,
+    "currentOrder" : null
+  }, {
+    "number" : 16,
+    "currentOrder" : null
+  }, {
+    "number" : 17,
+    "currentOrder" : null
+  }, {
+    "number" : 18,
+    "currentOrder" : null
+  }, {
+    "number" : 19,
+    "currentOrder" : null
+  }, {
+    "number" : 20,
+    "currentOrder" : null
+  }, {
+    "number" : 21,
+    "currentOrder" : null
+  }, {
+    "number" : 22,
+    "currentOrder" : null
+  }, {
+    "number" : 23,
+    "currentOrder" : null
+  }, {
+    "number" : 24,
+    "currentOrder" : null
+  }, {
+    "number" : 25,
+    "currentOrder" : null
+  } ],
+  "waiters" : [ {
+    "id" : null,
+    "name" : "Ionel",
+    "orders" : null
+  }, {
+    "id" : null,
+    "name" : "Marcel",
+    "orders" : null
+  }, {
+    "id" : null,
+    "name" : "Mirel",
+    "orders" : null
+  }, {
+    "id" : null,
+    "name" : "Cornel",
+    "orders" : null
+  }, {
+    "id" : null,
+    "name" : "Costel",
+    "orders" : null
+  } ]
 }

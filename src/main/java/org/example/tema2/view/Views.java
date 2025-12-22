@@ -1,5 +1,8 @@
 package org.example.tema2.view;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.IOException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
@@ -499,7 +502,15 @@ public class Views {
         TabPane tabPane = new TabPane();
         tabPane.getTabs().addAll(createStaffTab(), createMenuTab(), createOffersTab(), createHistoryTab());
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        managerScene = new Scene(tabPane, 900, 600);
+
+        Button goBackButton = new Button("Inapoi");
+        goBackButton.setOnAction(e -> RestaurantApplication.welcomeView());
+
+        VBox root = new VBox(10, goBackButton, tabPane);
+        root.setPadding(new Insets(10));
+        VBox.setVgrow(tabPane, Priority.ALWAYS);
+
+        managerScene = new Scene(root, 900, 600);
     }
 
     private Tab createStaffTab() {
@@ -581,16 +592,27 @@ public class Views {
         Button editButton = new Button("Editeaza");
 
         addButton.setOnAction(e -> {
-            // Simplified adding - assuming Food for now or need Type selector
-            // For simplicity, let's say we add a generic Food
             try {
                 String name = nameField.getText();
                 double price = Double.parseDouble(priceField.getText());
-                Product p = new Food(name, price, 0, Product.Type.MAIN_COURSE); // Defaulting
-                restaurant.addProduct(p);
-                productTable.getItems().add(p);
-                // Persist? The requirement says "Import/Export meniu din JSON".
-                // Usually we modify the in-memory list and then export.
+                Product p = new Food(name, price, 0, Product.Type.MAIN_COURSE); // Defaulting to Food/Main Course
+
+                EntityManager em = emf.createEntityManager();
+                try {
+                    em.getTransaction().begin();
+                    em.persist(p);
+                    em.getTransaction().commit();
+
+                    restaurant.addProduct(p);
+                    productTable.getItems().add(p);
+                    nameField.clear();
+                    priceField.clear();
+                } catch (Exception ex) {
+                    if (em.getTransaction().isActive()) em.getTransaction().rollback();
+                    ex.printStackTrace();
+                } finally {
+                    em.close();
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -599,8 +621,37 @@ public class Views {
         deleteButton.setOnAction(e -> {
             Product selected = productTable.getSelectionModel().getSelectedItem();
             if (selected != null) {
-                restaurant.getProducts().remove(selected);
-                productTable.getItems().remove(selected);
+                EntityManager em = emf.createEntityManager();
+                try {
+                    em.getTransaction().begin();
+                    Product managedProduct = null;
+                    if (selected.getId() != null) {
+                        managedProduct = em.find(Product.class, selected.getId());
+                    }
+                    if (managedProduct == null) {
+                        try {
+                            List<Product> results = em.createQuery("SELECT p FROM Product p WHERE p.name = :name", Product.class)
+                                    .setParameter("name", selected.getName())
+                                    .getResultList();
+                            if (!results.isEmpty()) {
+                                managedProduct = results.get(0);
+                            }
+                        } catch (Exception ex) { }
+                    }
+
+                    if (managedProduct != null) {
+                        em.remove(managedProduct);
+                    }
+                    em.getTransaction().commit();
+
+                    restaurant.getProducts().remove(selected);
+                    productTable.getItems().remove(selected);
+                } catch (Exception ex) {
+                    if (em.getTransaction().isActive()) em.getTransaction().rollback();
+                    ex.printStackTrace();
+                } finally {
+                    em.close();
+                }
             }
         });
 
@@ -608,9 +659,53 @@ public class Views {
              Product selected = productTable.getSelectionModel().getSelectedItem();
              if (selected != null) {
                  try {
-                     selected.setName(nameField.getText());
-                     selected.setPrice(Double.parseDouble(priceField.getText()));
-                     productTable.refresh();
+                     String newName = nameField.getText();
+                     double newPrice = Double.parseDouble(priceField.getText());
+                     String oldName = selected.getName();
+
+                     EntityManager em = emf.createEntityManager();
+                     try {
+                         em.getTransaction().begin();
+                         Product managedProduct = null;
+                         if (selected.getId() != null) {
+                             managedProduct = em.find(Product.class, selected.getId());
+                         }
+
+                         if (managedProduct == null) {
+                             try {
+                                 List<Product> results = em.createQuery("SELECT p FROM Product p WHERE p.name = :name", Product.class)
+                                         .setParameter("name", oldName)
+                                         .getResultList();
+                                 if (!results.isEmpty()) {
+                                     managedProduct = results.get(0);
+                                 }
+                             } catch (Exception ex) { }
+                         }
+
+                         if (managedProduct != null) {
+                             managedProduct.setName(newName);
+                             managedProduct.setPrice(newPrice);
+                             if (selected.getId() == null) {
+                                 selected.setId(managedProduct.getId());
+                             }
+                         } else {
+                             // Product not in DB yet, persist it
+                             selected.setName(newName);
+                             selected.setPrice(newPrice);
+                             em.persist(selected);
+                         }
+                         em.getTransaction().commit();
+
+                         // Update local object
+                         selected.setName(newName);
+                         selected.setPrice(newPrice);
+                         productTable.refresh();
+                     } catch (Exception ex) {
+                         if (em.getTransaction().isActive()) em.getTransaction().rollback();
+                         ex.printStackTrace();
+                     } finally {
+                         em.close();
+                     }
                  } catch (Exception ex) {
                      ex.printStackTrace();
                  }
@@ -624,7 +719,34 @@ public class Views {
             }
         });
 
-        VBox controls = new VBox(10, nameField, priceField, addButton, editButton, deleteButton);
+        Button importButton = new Button("Import JSON");
+        Button exportButton = new Button("Export JSON");
+
+        importButton.setOnAction(e -> {
+            ObjectMapper mapper = new ObjectMapper();
+            try {
+                Restaurant loaded = mapper.readValue(new File("configRestaurant.json"), Restaurant.class);
+                restaurant.getProducts().clear();
+                restaurant.getProducts().addAll(loaded.getProducts());
+                productTable.setItems(FXCollections.observableArrayList(restaurant.getProducts()));
+                productTable.refresh();
+                System.out.println("Imported from configRestaurant.json");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        exportButton.setOnAction(e -> {
+            ObjectMapper mapper = new ObjectMapper();
+            try {
+                mapper.writerWithDefaultPrettyPrinter().writeValue(new File("configRestaurant.json"), restaurant);
+                System.out.println("Exported to configRestaurant.json");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        VBox controls = new VBox(10, nameField, priceField, addButton, editButton, deleteButton, importButton, exportButton);
         HBox root = new HBox(10, productTable, controls);
         root.setPadding(new Insets(10));
         Tab tab = new Tab("Meniu");
