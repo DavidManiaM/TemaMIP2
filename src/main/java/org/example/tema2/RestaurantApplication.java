@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.Persistence;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
@@ -13,14 +14,14 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.beans.binding.Bindings;
+import org.example.tema2.model.Credentials;
 import org.example.tema2.model.Drink;
 import org.example.tema2.model.Food;
 import org.example.tema2.model.Product;
+import org.example.tema2.repo.CredentialsRepository;
 import org.example.tema2.structure.Restaurant;
 import org.example.tema2.structure.Menu;
 
@@ -30,6 +31,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class RestaurantApplication extends Application {
 
@@ -48,12 +50,49 @@ public class RestaurantApplication extends Application {
 
         deserializeRestaurant();
 
-        // Login
+        // WelcomePage
 
+        // insertInitialCredentials(); --> Don't call again
+        welcomeView(stage);
+
+
+        // Iteratia6(stage);
+
+    }
+
+    public void insertInitialCredentials() {
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+
+        try {
+            tx.begin();
+
+            Credentials credentialsWaiter =
+                    new Credentials("Waiter123", "secretPassword", Credentials.Role.WAITER);
+
+            Credentials credentialsManager =
+                    new Credentials("MaestrulMania", "admin123", Credentials.Role.ADMIN);
+
+            em.persist(credentialsWaiter);
+            em.persist(credentialsManager);
+
+            tx.commit();
+        } catch (Exception e) {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+
+    private void welcomeView(Stage stage) {
         Button buttonGuest = new Button("Client");
-        buttonGuest.setPrefSize(100, 50);
+        buttonGuest.setPrefSize(150, 60);
         Button buttonWaiterManager = new Button("Ospatar sau Manager");
-        buttonWaiterManager.setPrefSize(100, 50);
+        buttonWaiterManager.setPrefSize(150, 60);
         HBox root = new HBox(buttonGuest, buttonWaiterManager);
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(10, 10, 10, 10));
@@ -72,10 +111,6 @@ public class RestaurantApplication extends Application {
         buttonWaiterManager.setOnAction(e -> {
             buttonLoginAction(stage); // To Login
         });
-
-
-        // Iteratia6(stage);
-
     }
 
     private void initViews() {
@@ -221,7 +256,15 @@ public class RestaurantApplication extends Application {
                     drinkCheckBox, minPriceSpinner, maxPriceSpinner, searchField);
         });
 
-        HBox topBox = new HBox(10, filterDropdown, searchField, searchButton);
+        HBox topLeftBox = new HBox(10, filterDropdown, searchField, searchButton);
+
+        Button goBackButton = new Button("Înapoi");
+        goBackButton.setOnAction(e -> {welcomeView(stage);});
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox topBox = new HBox(10, topLeftBox, spacer, goBackButton);
         topBox.setAlignment(Pos.TOP_LEFT);
         topBox.setPadding(new Insets(10));
 
@@ -286,15 +329,26 @@ public class RestaurantApplication extends Application {
         loginButton.setOnAction(e -> {
             String name = nameField.getText();
             String password = passwordField.getText();
-            System.out.println(name + " " + password);
-            if (Objects.equals(name, "Waiter123") && Objects.equals(password, "secretPassword")) {
-                // waiterActions();
-            }
-            else if (Objects.equals(name, "MaestrulMania") && Objects.equals(password, "admin1234")) {
-                // managerActions();
+
+            Credentials credentials = new Credentials(name, password);
+
+            EntityManagerFactory credentialsEmf;
+            CredentialsRepository credentialsRepo = new CredentialsRepository(emf);
+
+            Optional<Credentials.Role> roleOptional = credentialsRepo.getRoleByUsernameAndPassword(name, password);
+
+            if (roleOptional.isPresent()) {
+                if (roleOptional.get() == Credentials.Role.ADMIN) {
+                    System.out.println("LOGIN SUCCESSFUL: [ADMIN]");
+                    managerView(stage);
+                }
+                else if (roleOptional.get() == Credentials.Role.WAITER) {
+                    System.out.println("LOGIN SUCCESSFUL: [WAITER]");
+                    waiterView(stage);
+                }
             }
             else {
-                buttonGuestAction(stage);
+                System.out.println("LOGIN ERORR: Username or password is incorrect");
             }
         });
 
@@ -304,6 +358,12 @@ public class RestaurantApplication extends Application {
         Scene scene = new Scene(rootBox, 720, 450);
         stage.setTitle("Restaurant \"La Ardei\"");
         stage.setScene(scene);
+    }
+
+    private void waiterView(Stage stage) {
+    }
+
+    private void managerView(Stage stage) {
     }
 
     private void Iteratia6(Stage stage) {
