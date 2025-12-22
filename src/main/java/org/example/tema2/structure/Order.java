@@ -15,7 +15,7 @@ public class Order {
     List<OrderElement> elements = new ArrayList<>();
     public int discount = 0;
     public Optional<SpecialOffer> activeSpecialOffer;
-    private boolean offerApplied = false;
+    private static final String PIZZA_OFFER_NAME = "Pizza Margherita - Oferta";
 
     SpecialOffer _10PercentDiscountOver5Products = new SpecialOffer() {
         @Override
@@ -48,21 +48,13 @@ public class Order {
 
         @Override
         public boolean isApplicable() {
-            boolean hasPizza = false;
-            for (OrderElement element : elements) {
-                if(element.getProduct().getName().contains("Pizza")) {
-                    hasPizza = true;
-                    break;
-                }
-            }
-
-            return hasPizza;
+            return elements.stream().anyMatch(el -> el.getProduct().getName().contains("Pizza") && !el.getProduct().getName().equals(PIZZA_OFFER_NAME));
         }
 
         private int nrOfPizzas(){
             int nrPizzas = 0;
             for (OrderElement element : elements) {
-                if(element.getProduct().getName().contains("Pizza")) {
+                if(element.getProduct().getName().contains("Pizza") && !element.getProduct().getName().equals(PIZZA_OFFER_NAME)) {
                     nrPizzas += element.quantity;
                 }
             }
@@ -71,7 +63,7 @@ public class Order {
 
         @Override
         public void applyOffer() {
-            elements.add(new OrderElement(nrOfPizzas(), new Food("Pizza Margherita - Oferta", 0, 450, Product.Type.MAIN_COURSE)));
+            // This logic is now handled in the main applyOffer method
         }
     };
     SpecialOffer _15PercentDiscountForLemonades = new SpecialOffer() {
@@ -112,9 +104,28 @@ public class Order {
     }
 
     public void applyOffer() {
-        if (!offerApplied && activeSpecialOffer.isPresent() && activeSpecialOffer.get().isApplicable()) {
-            activeSpecialOffer.get().applyOffer();
-            offerApplied = true;
+        // First, remove any previously added offer items to re-evaluate correctly.
+        elements.removeIf(el -> el.getProduct().getName().equals(PIZZA_OFFER_NAME));
+
+        if (activeSpecialOffer.isPresent() && activeSpecialOffer.get().isApplicable()) {
+            SpecialOffer offer = activeSpecialOffer.get();
+            // Specific logic for the pizza offer
+            if (offer == pizza1Plus1Free) {
+                int pizzaCount = 0;
+                for (OrderElement element : elements) {
+                    if (element.getProduct().getName().contains("Pizza") && !element.getProduct().getName().equals(PIZZA_OFFER_NAME)) {
+                        pizzaCount += element.quantity;
+                    }
+                }
+                if (pizzaCount > 0) {
+                    elements.add(new OrderElement(pizzaCount, new Food(PIZZA_OFFER_NAME, 0, 450, Product.Type.MAIN_COURSE)));
+                }
+            }
+            // Apply other offers if necessary
+            offer.applyOffer();
+        } else {
+            // If no offer is applicable, reset any state like discounts
+            discount = 0;
         }
     }
 
@@ -171,11 +182,6 @@ public class Order {
     }
 
     public void removeProduct(Product productToRemove) {
-        for (OrderElement element : elements){
-            if(element.getProduct().getName().equals(productToRemove.getName())){
-                elements.remove(element);
-                break;
-            }
-        }
+        elements.removeIf(element -> element.getProduct() == productToRemove);
     }
 }
