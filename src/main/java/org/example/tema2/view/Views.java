@@ -10,6 +10,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import org.example.tema2.RestaurantApplication;
@@ -32,6 +33,7 @@ public class Views {
 
     private Scene welcomeScene;
     private Scene clientScene;
+    private Scene managerScene;
 
     private EntityManagerFactory emf;
 
@@ -107,7 +109,6 @@ public class Views {
         formGrid.add(new Label("Nume: "), 0, 0);
         formGrid.add(nameLabel, 1, 0);
         formGrid.add(new Label("Pret: "), 0, 1);
-        formGrid.add(priceLabel, 1, 1);
         formGrid.add(volumeWeightLabelText, 0, 2);
         formGrid.add(volumeWeightLabelValue, 1, 2);
 
@@ -382,7 +383,6 @@ public class Views {
         formGrid.add(new Label("Nume: "), 0, 0);
         formGrid.add(nameLabel, 1, 0);
         formGrid.add(new Label("Pret: "), 0, 1);
-        formGrid.add(priceLabel, 1, 1);
         formGrid.add(volumeWeightLabelText, 0, 2);
         formGrid.add(volumeWeightLabelValue, 1, 2);
 
@@ -444,6 +444,13 @@ public class Views {
         return clientScene;
     }
 
+    public Scene getManagerScene() {
+        if (managerScene == null) {
+            initManagerView();
+        }
+        return managerScene;
+    }
+
     public Stage getStage() {
         return stage;
     }
@@ -487,4 +494,192 @@ public class Views {
     public void setWaiterOfferHistoryTab(HBox waiterOfferHistoryTab) {
         this.waiterOfferHistoryTab = waiterOfferHistoryTab;
     }
+
+    private void initManagerView() {
+        TabPane tabPane = new TabPane();
+        tabPane.getTabs().addAll(createStaffTab(), createMenuTab(), createOffersTab(), createHistoryTab());
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        managerScene = new Scene(tabPane, 900, 600);
+    }
+
+    private Tab createStaffTab() {
+        TableView<Waiter> waiterTable = new TableView<>();
+        TableColumn<Waiter, Long> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
+        TableColumn<Waiter, String> nameCol = new TableColumn<>("Nume");
+        nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
+        waiterTable.getColumns().addAll(idCol, nameCol);
+
+        EntityManager em = emf.createEntityManager();
+        List<Waiter> waiters = em.createQuery("SELECT w FROM Waiter w", Waiter.class).getResultList();
+        em.close();
+        waiterTable.setItems(FXCollections.observableArrayList(waiters));
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Nume Ospatar");
+        Button addButton = new Button("Adauga");
+        Button deleteButton = new Button("Sterge");
+
+        addButton.setOnAction(e -> {
+            String name = nameField.getText();
+            if (!name.isEmpty()) {
+                Waiter w = new Waiter(name);
+                EntityManager em1 = emf.createEntityManager();
+                em1.getTransaction().begin();
+                em1.persist(w);
+                em1.getTransaction().commit();
+                em1.close();
+                waiterTable.getItems().add(w);
+                nameField.clear();
+            }
+        });
+
+        deleteButton.setOnAction(e -> {
+            Waiter selected = waiterTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Sigur stergeti ospatarul " + selected.getName() + "? Toate comenzile vor fi sterse!", ButtonType.YES, ButtonType.NO);
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.YES) {
+                        EntityManager em2 = emf.createEntityManager();
+                        em2.getTransaction().begin();
+                        Waiter managedWaiter = em2.find(Waiter.class, selected.getId());
+                        if (managedWaiter != null) {
+                            em2.remove(managedWaiter);
+                        }
+                        em2.getTransaction().commit();
+                        em2.close();
+                        waiterTable.getItems().remove(selected);
+                    }
+                });
+            }
+        });
+
+        VBox controls = new VBox(10, nameField, addButton, deleteButton);
+        HBox root = new HBox(10, waiterTable, controls);
+        root.setPadding(new Insets(10));
+        Tab tab = new Tab("Personal");
+        tab.setContent(root);
+        tab.setClosable(false);
+        return tab;
+    }
+
+    private Tab createMenuTab() {
+        TableView<Product> productTable = new TableView<>();
+        TableColumn<Product, String> nameCol = new TableColumn<>("Nume");
+        nameCol.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
+        TableColumn<Product, Double> priceCol = new TableColumn<>("Pret");
+        priceCol.setCellValueFactory(cellData -> cellData.getValue().priceProperty().asObject());
+        productTable.getColumns().addAll(nameCol, priceCol);
+        productTable.setItems(FXCollections.observableArrayList(restaurant.getProducts()));
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Nume Produs");
+        TextField priceField = new TextField();
+        priceField.setPromptText("Pret");
+        Button addButton = new Button("Adauga");
+        Button deleteButton = new Button("Sterge");
+        Button editButton = new Button("Editeaza");
+
+        addButton.setOnAction(e -> {
+            // Simplified adding - assuming Food for now or need Type selector
+            // For simplicity, let's say we add a generic Food
+            try {
+                String name = nameField.getText();
+                double price = Double.parseDouble(priceField.getText());
+                Product p = new Food(name, price, 0, Product.Type.MAIN_COURSE); // Defaulting
+                restaurant.addProduct(p);
+                productTable.getItems().add(p);
+                // Persist? The requirement says "Import/Export meniu din JSON".
+                // Usually we modify the in-memory list and then export.
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        deleteButton.setOnAction(e -> {
+            Product selected = productTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                restaurant.getProducts().remove(selected);
+                productTable.getItems().remove(selected);
+            }
+        });
+
+        editButton.setOnAction(e -> {
+             Product selected = productTable.getSelectionModel().getSelectedItem();
+             if (selected != null) {
+                 try {
+                     selected.setName(nameField.getText());
+                     selected.setPrice(Double.parseDouble(priceField.getText()));
+                     productTable.refresh();
+                 } catch (Exception ex) {
+                     ex.printStackTrace();
+                 }
+             }
+        });
+
+        productTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (newSelection != null) {
+                nameField.setText(newSelection.getName());
+                priceField.setText(String.valueOf(newSelection.getPrice()));
+            }
+        });
+
+        VBox controls = new VBox(10, nameField, priceField, addButton, editButton, deleteButton);
+        HBox root = new HBox(10, productTable, controls);
+        root.setPadding(new Insets(10));
+        Tab tab = new Tab("Meniu");
+        tab.setContent(root);
+        tab.setClosable(false);
+        return tab;
+    }
+
+    private Tab createOffersTab() {
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(10));
+
+        org.example.tema2.structure.utils.OfferManager om = org.example.tema2.structure.utils.OfferManager.getInstance();
+
+        CheckBox cb1 = new CheckBox("Happy Hour Drinks (50% off every 2nd drink)");
+        cb1.setSelected(om.isOfferActive(org.example.tema2.structure.utils.OfferManager.HAPPY_HOUR_DRINKS));
+        cb1.setOnAction(e -> om.setOfferStatus(org.example.tema2.structure.utils.OfferManager.HAPPY_HOUR_DRINKS, cb1.isSelected()));
+
+        CheckBox cb2 = new CheckBox("Meal Deal (Pizza -> Cheapest Dessert 25% off)");
+        cb2.setSelected(om.isOfferActive(org.example.tema2.structure.utils.OfferManager.MEAL_DEAL));
+        cb2.setOnAction(e -> om.setOfferStatus(org.example.tema2.structure.utils.OfferManager.MEAL_DEAL, cb2.isSelected()));
+
+        CheckBox cb3 = new CheckBox("Party Pack (4 Pizzas -> 1 Free)");
+        cb3.setSelected(om.isOfferActive(org.example.tema2.structure.utils.OfferManager.PARTY_PACK));
+        cb3.setOnAction(e -> om.setOfferStatus(org.example.tema2.structure.utils.OfferManager.PARTY_PACK, cb3.isSelected()));
+
+        root.getChildren().addAll(new Label("Activeaza Oferte:"), cb1, cb2, cb3);
+
+        Tab tab = new Tab("Oferte");
+        tab.setContent(root);
+        tab.setClosable(false);
+        return tab;
+    }
+
+    private Tab createHistoryTab() {
+        ListView<Order> orderList = new ListView<>();
+        EntityManager em = emf.createEntityManager();
+        List<Order> orders = em.createQuery("SELECT o FROM Order o", Order.class).getResultList();
+        em.close();
+        orderList.setItems(FXCollections.observableArrayList(orders));
+
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setOnAction(e -> {
+            EntityManager em2 = emf.createEntityManager();
+            List<Order> newOrders = em2.createQuery("SELECT o FROM Order o", Order.class).getResultList();
+            em2.close();
+            orderList.setItems(FXCollections.observableArrayList(newOrders));
+        });
+
+        VBox root = new VBox(10, refreshBtn, orderList);
+        root.setPadding(new Insets(10));
+        Tab tab = new Tab("Istoric Global");
+        tab.setContent(root);
+        tab.setClosable(false);
+        return tab;
+    }
+
 }

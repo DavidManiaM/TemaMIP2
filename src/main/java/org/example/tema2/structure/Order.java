@@ -1,7 +1,6 @@
 package org.example.tema2.structure;
 
 import jakarta.persistence.*;
-import org.example.tema2.model.Food;
 import org.example.tema2.model.Product;
 import org.example.tema2.model.Waiter;
 import org.example.tema2.structure.utils.OrderElement;
@@ -123,33 +122,87 @@ public class Order {
     };
 
 
+    @Transient
+    private double discountAmount = 0.0;
+
     public Order(){
-        activeSpecialOffer = Optional.ofNullable(pizza1Plus1Free);
+        // activeSpecialOffer = Optional.ofNullable(pizza1Plus1Free);
     }
 
     public void applyOffer() {
-        // First, remove any previously added offer items to re-evaluate correctly.
-        elements.removeIf(el -> el.getProduct().getName().equals(PIZZA_OFFER_NAME));
+        discountAmount = 0.0;
+        // Reset custom prices if any were set (though we use discountAmount now)
+        for(OrderElement el : elements) el.setCustomPrice(null);
 
-        if (activeSpecialOffer.isPresent() && activeSpecialOffer.get().isApplicable()) {
-            SpecialOffer offer = activeSpecialOffer.get();
-            // Specific logic for the pizza offer
-            if (offer == pizza1Plus1Free) {
-                int pizzaCount = 0;
-                for (OrderElement element : elements) {
-                    if (element.getProduct().getName().contains("Pizza") && !element.getProduct().getName().equals(PIZZA_OFFER_NAME)) {
-                        pizzaCount += element.quantity;
+        org.example.tema2.structure.utils.OfferManager offerManager = org.example.tema2.structure.utils.OfferManager.getInstance();
+
+        if (offerManager.isOfferActive(org.example.tema2.structure.utils.OfferManager.HAPPY_HOUR_DRINKS)) {
+            applyHappyHour();
+        }
+        if (offerManager.isOfferActive(org.example.tema2.structure.utils.OfferManager.MEAL_DEAL)) {
+            applyMealDeal();
+        }
+        if (offerManager.isOfferActive(org.example.tema2.structure.utils.OfferManager.PARTY_PACK)) {
+            applyPartyPack();
+        }
+    }
+
+    private void applyHappyHour() {
+        int drinkCount = 0;
+        for (OrderElement el : elements) {
+            if (el.getProduct() instanceof org.example.tema2.model.Drink) {
+                for(int i=0; i<el.quantity; i++) {
+                    drinkCount++;
+                    if (drinkCount % 2 == 0) {
+                        discountAmount += el.getProduct().getPrice() * 0.5;
                     }
                 }
-                if (pizzaCount > 0) {
-                    elements.add(new OrderElement(pizzaCount, new Food(PIZZA_OFFER_NAME, 0, 450, Product.Type.MAIN_COURSE)));
+            }
+        }
+    }
+
+    private void applyMealDeal() {
+        boolean hasPizza = elements.stream().anyMatch(el -> el.getProduct() instanceof org.example.tema2.model.Pizza);
+        if (hasPizza) {
+            OrderElement cheapestDessertEl = null;
+            double minPrice = Double.MAX_VALUE;
+
+            for (OrderElement el : elements) {
+                if (el.getProduct().getType() == Product.Type.DESSERT) {
+                    if (el.getProduct().getPrice() < minPrice) {
+                        minPrice = el.getProduct().getPrice();
+                        cheapestDessertEl = el;
+                    }
                 }
             }
-            // Apply other offers if necessary
-            offer.applyOffer();
-        } else {
-            // If no offer is applicable, reset any state like discounts
-            discount = 0;
+
+            if (cheapestDessertEl != null) {
+                discountAmount += cheapestDessertEl.getProduct().getPrice() * 0.25;
+            }
+        }
+    }
+
+    private void applyPartyPack() {
+        int pizzaCount = 0;
+        for (OrderElement el : elements) {
+            if (el.getProduct() instanceof org.example.tema2.model.Pizza) {
+                pizzaCount += el.quantity;
+            }
+        }
+
+        if (pizzaCount >= 4) {
+            double minPrice = Double.MAX_VALUE;
+            for (OrderElement el : elements) {
+                if (el.getProduct() instanceof org.example.tema2.model.Pizza) {
+                    if (el.getProduct().getPrice() < minPrice) {
+                        minPrice = el.getProduct().getPrice();
+                    }
+                }
+            }
+
+            if (minPrice != Double.MAX_VALUE) {
+                discountAmount += minPrice;
+            }
         }
     }
 
@@ -158,7 +211,10 @@ public class Order {
         for (OrderElement element : elements){
             total += element.getPrice();
         }
-        return total * ((100 - discount) / 100.0);
+        double priceAfterDiscount = total - discountAmount;
+        if (priceAfterDiscount < 0) priceAfterDiscount = 0;
+
+        return priceAfterDiscount * ((100 - discount) / 100.0);
     }
 
 //    @Override

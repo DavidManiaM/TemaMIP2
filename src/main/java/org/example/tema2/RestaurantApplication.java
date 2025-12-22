@@ -212,6 +212,7 @@ public class RestaurantApplication extends Application {
     }
 
     private static void managerView(Stage stage) {
+        stage.setScene(views.getManagerScene());
     }
 
     private void Iteratia6(Stage stage) {
