@@ -161,28 +161,36 @@ public class Order {
         return total * ((100 - discount) / 100.0);
     }
 
+//    @Override
+//    public String toString() {
+//
+//        applyOffer();
+//
+//        StringBuilder str = new StringBuilder();
+//        str.append("Order {\n");
+//        for (OrderElement element : elements){
+//            str.append("\t").append(element.toString()).append("\n");
+//        }
+//
+//        if(activeSpecialOffer.isPresent() && activeSpecialOffer.get().isApplicable()){
+//            str.append("------------------------------\n\tOferta activa: ").append(activeSpecialOffer.get().getName()).append("\n");
+//        }
+//
+//        double totalWithVat = getTotalPrice();
+//        str.append("------------------------------\n\tTotal cu TVA: ").append(totalWithVat).append("\n");
+//
+//        String rawPriceString = String.format("%.2f", totalWithVat * 100 / (100 + TVA));
+//        str.append("\tTotal fara TVA: ").append(rawPriceString).append("\n");
+//
+//        return str.append("}").toString();
+//    }
+
     @Override
     public String toString() {
 
         applyOffer();
 
-        StringBuilder str = new StringBuilder();
-        str.append("Order {\n");
-        for (OrderElement element : elements){
-            str.append("\t").append(element.toString()).append("\n");
-        }
-
-        if(activeSpecialOffer.isPresent() && activeSpecialOffer.get().isApplicable()){
-            str.append("------------------------------\n\tOferta activa: ").append(activeSpecialOffer.get().getName()).append("\n");
-        }
-
-        double totalWithVat = getTotalPrice();
-        str.append("------------------------------\n\tTotal cu TVA: ").append(totalWithVat).append("\n");
-
-        String rawPriceString = String.format("%.2f", totalWithVat * 100 / (100 + TVA));
-        str.append("\tTotal fara TVA: ").append(rawPriceString).append("\n");
-
-        return str.append("}").toString();
+        return "Order [id = " + id + ", pret = " + totalPrice + "]";
     }
 
     public Long getId() {

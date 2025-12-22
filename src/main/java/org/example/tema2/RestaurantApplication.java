@@ -196,18 +196,16 @@ public class RestaurantApplication extends Application {
     private static void waiterView(Stage stage) {
 
         HBox newOfferView = waiterNewOrderTabView(stage);
+        HBox offerHistoryView = waiterOfferHistoryTab(stage);
 
         TabPane tabPane = new TabPane();
         Tab newOfferTab = new Tab("Oferta Noua");
         newOfferTab.setContent(newOfferView);
         Tab offerHistoryTab = new Tab("Istoric oferte");
-        offerHistoryTab.setContent(new Label("Register view"));
+        offerHistoryTab.setContent(offerHistoryView);
 
         tabPane.getTabs().addAll(newOfferTab, offerHistoryTab);
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-
-
-
 
         Scene scene = new Scene(tabPane, 900, 450);
         stage.setScene(scene);
@@ -401,8 +399,29 @@ public class RestaurantApplication extends Application {
         return mainContainer;
     }
 
+    private static HBox waiterOfferHistoryTab(Stage stage) {
+        ListView<Order> orderListView = new ListView<>();
+        EntityManager em = emf.createEntityManager();
+        try {
+            // Assuming the logged-in waiter has ID = 1 for this example.
+            // In a real application, you would pass the actual logged-in waiter's ID.
+            long waiterId = 1L;
+            List<Order> orders = em.createQuery("SELECT o FROM Order o WHERE o.waiter.id = :waiterId", Order.class)
+                    .setParameter("waiterId", waiterId)
+                    .getResultList();
+            orderListView.setItems(FXCollections.observableArrayList(orders));
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Could not fetch order history.");
+        } finally {
+            em.close();
+        }
 
-
+        // You might want to add more details to the view, like order details on selection.
+        HBox container = new HBox(orderListView);
+        container.setPadding(new Insets(10));
+        return container;
+    }
 
 
     private static void managerView(Stage stage) {
