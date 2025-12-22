@@ -48,7 +48,7 @@ public class RestaurantApplication extends Application {
 
         deserializeRestaurant();
         initWaiters();
-        views = new Views(stage, restaurant);
+        views = new Views(emf, stage, restaurant);
 
         // WelcomePage
 
@@ -195,8 +195,8 @@ public class RestaurantApplication extends Application {
 
     private static void waiterView(Stage stage) {
 
-        HBox newOfferView = waiterNewOrderTabView(stage);
-        HBox offerHistoryView = waiterOfferHistoryTab(stage);
+        HBox newOfferView = views.getWaiterNewOrderTabView();
+        HBox offerHistoryView = views.getWaiterOfferHistoryTab();
 
         TabPane tabPane = new TabPane();
         Tab newOfferTab = new Tab("Oferta Noua");
@@ -210,219 +210,6 @@ public class RestaurantApplication extends Application {
         Scene scene = new Scene(tabPane, 900, 450);
         stage.setScene(scene);
     }
-
-    private static HBox waiterNewOrderTabView(Stage stage) {
-        List<Table> tables = restaurant.getTables();
-
-        // Left: List of tables
-        ListView<Table> tableListView = new ListView<>();
-        tableListView.setItems(FXCollections.observableArrayList(tables));
-        tableListView.setPrefWidth(200);
-
-        // Center: List of available products
-        ListView<Product> productListView = views.getProductListView();
-
-        // Right: Order details
-        Label currentOrderLabel = new Label("Comanda curentă:");
-        ListView<Product> orderProductsListView = new ListView<>();
-        orderProductsListView.setPrefHeight(150);
-        Label totalLabel = new Label("Total: 0.0");
-        Label specialOfferLabel = new Label(); // Label for special offers
-
-        Button addProductButton = new Button("+");
-        Button removeProductButton = new Button("-");
-        Button addOrderButton = new Button("Adaugă Comanda");
-        HBox waiterOrderAddRemoveButtonsContainer = new HBox(10, addProductButton, removeProductButton);
-
-        VBox waiterRightContainer = new VBox(10, currentOrderLabel, orderProductsListView, totalLabel, specialOfferLabel, views.getProductDetailsView(), waiterOrderAddRemoveButtonsContainer, addOrderButton);
-        waiterRightContainer.setPrefWidth(300);
-
-        // Event handler for table selection
-        tableListView.getSelectionModel().selectedItemProperty().addListener((obs, oldTable, newTable) -> {
-            if (newTable != null) {
-                Order currentOrder = newTable.getCurrentOrder();
-                if (currentOrder != null) {
-                    currentOrder.applyOffer();
-                    orderProductsListView.setItems(FXCollections.observableArrayList(currentOrder.getProducts()));
-                    totalLabel.setText("Total: " + currentOrder.getTotalPrice());
-                    currentOrder.activeSpecialOffer.ifPresentOrElse(
-                            offer -> {
-                                if (offer.isApplicable()) {
-                                    specialOfferLabel.setText("Ofertă activă: " + offer.getName());
-                                } else {
-                                    specialOfferLabel.setText("");
-                                }
-                            },
-                            () -> specialOfferLabel.setText("")
-                    );
-                } else {
-                    orderProductsListView.getItems().clear();
-                    totalLabel.setText("Total: 0.0");
-                    specialOfferLabel.setText("");
-                }
-            }
-        });
-
-        // Event handler for the '+' button
-        addProductButton.setOnAction(e -> {
-            Table selectedTable = tableListView.getSelectionModel().getSelectedItem();
-            Product selectedProduct = productListView.getSelectionModel().getSelectedItem();
-
-            if (selectedTable != null && selectedProduct != null) {
-                Order currentOrder = selectedTable.getCurrentOrder();
-                if (currentOrder == null) {
-                    currentOrder = new Order();
-                    selectedTable.setCurrentOrder(currentOrder);
-                }
-                currentOrder.addProduct(selectedProduct);
-                currentOrder.applyOffer();
-
-                // Refresh the order view
-                orderProductsListView.setItems(FXCollections.observableArrayList(currentOrder.getProducts()));
-                totalLabel.setText("Total: " + currentOrder.getTotalPrice());
-                currentOrder.activeSpecialOffer.ifPresentOrElse(
-                        offer -> {
-                            if (offer.isApplicable()) {
-                                specialOfferLabel.setText("Ofertă activă: " + offer.getName());
-                            } else {
-                                specialOfferLabel.setText("");
-                            }
-                        },
-                        () -> specialOfferLabel.setText("")
-                );
-            } else {
-                System.out.println("Vă rugăm selectați o masă și un produs.");
-            }
-        });
-
-        // Event handler for the '-' button
-        removeProductButton.setOnAction(e -> {
-            Table selectedTable = tableListView.getSelectionModel().getSelectedItem();
-            Product productToRemove = orderProductsListView.getSelectionModel().getSelectedItem();
-
-            if (selectedTable != null && productToRemove != null) {
-                Order currentOrder = selectedTable.getCurrentOrder();
-                if (currentOrder != null) {
-                    currentOrder.removeProduct(productToRemove);
-                    currentOrder.applyOffer();
-
-                    // Refresh the order view
-                    orderProductsListView.setItems(FXCollections.observableArrayList(currentOrder.getProducts()));
-                    totalLabel.setText("Total: " + currentOrder.getTotalPrice());
-                    currentOrder.activeSpecialOffer.ifPresentOrElse(
-                            offer -> {
-                                if (offer.isApplicable()) {
-                                    specialOfferLabel.setText("Ofertă activă: " + offer.getName());
-                                } else {
-                                    specialOfferLabel.setText("");
-                                }
-                            },
-                            () -> specialOfferLabel.setText("")
-                    );
-                }
-            } else {
-                System.out.println("Vă rugăm selectați o masă și un produs din comandă pentru a-l șterge.");
-            }
-        });
-
-        addOrderButton.setOnAction(e -> {
-            Table selectedTable = tableListView.getSelectionModel().getSelectedItem();
-            if (selectedTable != null && selectedTable.getCurrentOrder() != null) {
-                Order currentOrder = selectedTable.getCurrentOrder();
-
-                if (currentOrder.getProducts() == null || currentOrder.getProducts().isEmpty()) {
-                    System.out.println("Cannot add an empty order.");
-                    return;
-                }
-
-                EntityManager em = emf.createEntityManager();
-                try {
-                    em.getTransaction().begin();
-
-                    // Create a new Order entity for persistence
-                    Order newOrderToPersist = new Order();
-
-                    List<Waiter> waiters = em.createQuery("SELECT w FROM Waiter w", Waiter.class).getResultList();
-                    if (waiters.isEmpty()) {
-                        for (Waiter w : restaurant.getWaiters()) {
-                            em.persist(w);
-                            waiters.add(w);
-                        }
-                    }
-                    Waiter assignedWaiter = waiters.get((int) (Math.random() * waiters.size()));
-                    newOrderToPersist.setWaiter(assignedWaiter);
-
-                    // Copy products from the temporary order to the new one
-                    newOrderToPersist.setProducts(currentOrder.getOrderElements());
-                    newOrderToPersist.setTableNumber(selectedTable.getNumber());
-                    newOrderToPersist.setTotalPrice(currentOrder.getTotalPrice());
-
-                    em.persist(newOrderToPersist);
-
-                    if (assignedWaiter.getOrders() == null) {
-                        assignedWaiter.setOrders(new ArrayList<>());
-                    }
-                    assignedWaiter.getOrders().add(newOrderToPersist);
-                    em.merge(assignedWaiter);
-
-                    if (restaurant.getOrders() == null) {
-                        restaurant.setOrders(new ArrayList<>());
-                    }
-                    restaurant.getOrders().add(newOrderToPersist);
-
-                    em.getTransaction().commit();
-
-                    System.out.println("Comanda a fost adăugată cu succes pentru masa " + selectedTable.getNumber());
-
-                    // Clear the temporary order from the table view
-                    selectedTable.setCurrentOrder(null);
-                    orderProductsListView.getItems().clear();
-                    totalLabel.setText("Total: 0.0");
-                    specialOfferLabel.setText("");
-
-                } catch (Exception ex) {
-                    if (em.getTransaction().isActive()) {
-                        em.getTransaction().rollback();
-                    }
-                    ex.printStackTrace();
-                    System.out.println("Eroare la adăugarea comenzii.");
-                } finally {
-                    em.close();
-                }
-            } else {
-                System.out.println("Nu există o comandă de adăugat pentru masa selectată.");
-            }
-        });
-
-        HBox mainContainer = new HBox(10, tableListView, productListView, waiterRightContainer);
-        mainContainer.setPadding(new Insets(10));
-        return mainContainer;
-    }
-
-    private static HBox waiterOfferHistoryTab(Stage stage) {
-        ListView<Order> orderListView = new ListView<>();
-        EntityManager em = emf.createEntityManager();
-        try {
-            // Assuming the logged-in waiter has ID = 1 for this example.
-            // In a real application, you would pass the actual logged-in waiter's ID.
-            long waiterId = 1L;
-            List<Order> orders = em.createQuery("SELECT o FROM Order o WHERE o.waiter.id = :waiterId", Order.class)
-                    .setParameter("waiterId", waiterId)
-                    .getResultList();
-            orderListView.setItems(FXCollections.observableArrayList(orders));
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println("Could not fetch order history.");
-        } finally {
-            em.close();
-        }
-
-        // You might want to add more details to the view, like order details on selection.
-        HBox container = new HBox(orderListView);
-        container.setPadding(new Insets(10));
-        return container;
-    }
-
 
     private static void managerView(Stage stage) {
     }
