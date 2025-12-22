@@ -4,8 +4,9 @@ public class Table {
     static private int counter = 1;
     private int number;
 
-    Table() {
-        number = counter++;
+    public Table() {
+        number = counter;
+        counter++;
     }
 
     public int getNumber() {

@@ -5,6 +5,7 @@ module org.example.tema2 {
     requires jakarta.persistence;
     requires org.hibernate.orm.core;
     requires javafx.base;
+    requires javafx.graphics;
 
     opens org.example.tema2.structure to com.fasterxml.jackson.databind, org.hibernate.orm.core;
     exports org.example.tema2.structure;

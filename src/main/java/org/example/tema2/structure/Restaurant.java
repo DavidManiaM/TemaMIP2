@@ -2,6 +2,7 @@ package org.example.tema2.structure;
 
 import com.fasterxml.jackson.annotation.*;
 import org.example.tema2.model.Product;
+import org.example.tema2.model.Table;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,7 @@ public class Restaurant {
     private Menu menu = new Menu();
     @JsonIgnore
     private List<Order> orders = new ArrayList<>();
+    private List<Table> tables = new ArrayList<>();
 
     public Restaurant(String name) {
         this.name = name;
@@ -24,6 +26,13 @@ public class Restaurant {
         this.products = new ArrayList<>(menu.getProducts());
         orders =  new ArrayList<>();
         orders.add(new Order());
+
+       initTables();
+    }
+
+    private void initTables() {
+        for(int i = 0; i < 25; ++i)
+            tables.add(new Table());
     }
 
 
@@ -43,6 +52,8 @@ public class Restaurant {
         this.products = new ArrayList<>(this.menu.getProducts());
         orders =  new ArrayList<>();
         orders.add(new Order());
+
+        initTables();
     }
 
     @Override
@@ -80,6 +91,18 @@ public class Restaurant {
 
     public void setOrders(List<Order> orders) {
         this.orders = orders;
+    }
+
+    public List<Table> getTables() {
+        return tables;
+    }
+
+    public void addTable(Table table) {
+        tables.add(table);
+    }
+
+    public void addTables(List<Table> tablesToInsert) {
+        tables.addAll(tablesToInsert);
     }
 
 }
