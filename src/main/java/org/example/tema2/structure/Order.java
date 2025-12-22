@@ -12,7 +12,7 @@ import java.util.Optional;
 public class Order {
 
     public static final int TVA = Restaurant.TVA;
-    List<OrderElement> elements = new ArrayList<OrderElement>();
+    List<OrderElement> elements = new ArrayList<>();
     public int discount = 0;
     public Optional<SpecialOffer> activeSpecialOffer;
     private boolean offerApplied = false;
@@ -118,7 +118,7 @@ public class Order {
         }
     }
 
-    public double getTotal(){
+    public double getTotalPrice(){
         double total = 0;
         for (OrderElement element : elements){
             total += element.getPrice();
@@ -141,7 +141,7 @@ public class Order {
             str.append("------------------------------\n\tOferta activa: ").append(activeSpecialOffer.get().getName()).append("\n");
         }
 
-        double totalWithVat = getTotal();
+        double totalWithVat = getTotalPrice();
         str.append("------------------------------\n\tTotal cu TVA: ").append(totalWithVat).append("\n");
 
         String rawPriceString = String.format("%.2f", totalWithVat * 100 / (100 + TVA));
@@ -156,5 +156,26 @@ public class Order {
 
     public void addElement(int quantity, Product product){
         elements.add(new OrderElement(quantity, product));
+    }
+
+    public void addProduct(Product product){
+        this.addElement(1, product);
+    }
+
+    public List<Product> getProducts(){
+        List<Product> products = new ArrayList<>();
+        for (OrderElement element : elements){
+            products.add(element.getProduct());
+        }
+        return products;
+    }
+
+    public void removeProduct(Product productToRemove) {
+        for (OrderElement element : elements){
+            if(element.getProduct().getName().equals(productToRemove.getName())){
+                elements.remove(element);
+                break;
+            }
+        }
     }
 }

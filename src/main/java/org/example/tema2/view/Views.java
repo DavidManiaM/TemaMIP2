@@ -177,4 +177,28 @@ public class Views {
     public Stage getStage() {
         return stage;
     }
+
+    public ListView<Product> getProductListView() {
+        return productListView;
+    }
+
+    public void setProductListView(ListView<Product> productListView) {
+        this.productListView = productListView;
+    }
+
+    public VBox getProductDetailsView() {
+        return productDetailsView;
+    }
+
+    public void setProductDetailsView(VBox productDetailsView) {
+        this.productDetailsView = productDetailsView;
+    }
+
+    public VBox getClientView() {
+        return clientView;
+    }
+
+    public void setClientView(VBox clientView) {
+        this.clientView = clientView;
+    }
 }

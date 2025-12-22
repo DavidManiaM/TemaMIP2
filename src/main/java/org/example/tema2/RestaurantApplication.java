@@ -19,6 +19,7 @@ import javafx.stage.Stage;
 import javafx.beans.binding.Bindings;
 import org.example.tema2.model.*;
 import org.example.tema2.repo.CredentialsRepository;
+import org.example.tema2.structure.Order;
 import org.example.tema2.structure.Restaurant;
 import org.example.tema2.structure.Menu;
 import org.example.tema2.view.Views;
@@ -186,20 +187,126 @@ public class RestaurantApplication extends Application {
     private static void waiterView(Stage stage) {
 
         List<Table> tables = restaurant.getTables();
-        System.out.println(tables);
 
-        ListView<Table> productListView = new ListView<>();
-        productListView.setItems(FXCollections.observableArrayList(tables));
-        productListView.setPrefWidth(400);
+        // Left: List of tables
+        ListView<Table> tableListView = new ListView<>();
+        tableListView.setItems(FXCollections.observableArrayList(tables));
+        tableListView.setPrefWidth(200);
 
-        VBox waiterLeftContainer = new VBox(10);
+        // Center: List of available products
+        ListView<Product> productListView = views.getProductListView();
 
-        HBox mainContainer = new HBox(10, productListView, waiterLeftContainer);
+        // Right: Order details
+        Label currentOrderLabel = new Label("Comanda curentă:");
+        ListView<Product> orderProductsListView = new ListView<>();
+        orderProductsListView.setPrefHeight(150);
+        Label totalLabel = new Label("Total: 0.0");
+        Label specialOfferLabel = new Label(); // Label for special offers
 
-        Scene scene = new Scene(mainContainer, 720, 450);
+        Button addProductButton = new Button("+");
+        Button removeProductButton = new Button("-");
+        HBox waiterOrderAddRemoveButtonsContainer = new HBox(10, addProductButton, removeProductButton);
+
+        VBox waiterRightContainer = new VBox(10, currentOrderLabel, orderProductsListView, totalLabel, specialOfferLabel, views.getProductDetailsView(), waiterOrderAddRemoveButtonsContainer);
+        waiterRightContainer.setPrefWidth(300);
+
+        // Event handler for table selection
+        tableListView.getSelectionModel().selectedItemProperty().addListener((obs, oldTable, newTable) -> {
+            if (newTable != null) {
+                Order currentOrder = newTable.getCurrentOrder();
+                if (currentOrder != null) {
+                    currentOrder.applyOffer();
+                    orderProductsListView.setItems(FXCollections.observableArrayList(currentOrder.getProducts()));
+                    totalLabel.setText("Total: " + currentOrder.getTotalPrice());
+                    currentOrder.activeSpecialOffer.ifPresentOrElse(
+                            offer -> {
+                                if (offer.isApplicable()) {
+                                    specialOfferLabel.setText("Ofertă activă: " + offer.getName());
+                                } else {
+                                    specialOfferLabel.setText("");
+                                }
+                            },
+                            () -> specialOfferLabel.setText("")
+                    );
+                } else {
+                    orderProductsListView.getItems().clear();
+                    totalLabel.setText("Total: 0.0");
+                    specialOfferLabel.setText("");
+                }
+            }
+        });
+
+        // Event handler for the '+' button
+        addProductButton.setOnAction(e -> {
+            Table selectedTable = tableListView.getSelectionModel().getSelectedItem();
+            Product selectedProduct = productListView.getSelectionModel().getSelectedItem();
+
+            if (selectedTable != null && selectedProduct != null) {
+                Order currentOrder = selectedTable.getCurrentOrder();
+                if (currentOrder == null) {
+                    currentOrder = new Order();
+                    selectedTable.setCurrentOrder(currentOrder);
+                }
+                currentOrder.addProduct(selectedProduct);
+                currentOrder.applyOffer();
+
+                // Refresh the order view
+                orderProductsListView.setItems(FXCollections.observableArrayList(currentOrder.getProducts()));
+                totalLabel.setText("Total: " + currentOrder.getTotalPrice());
+                currentOrder.activeSpecialOffer.ifPresentOrElse(
+                        offer -> {
+                            if (offer.isApplicable()) {
+                                specialOfferLabel.setText("Ofertă activă: " + offer.getName());
+                            } else {
+                                specialOfferLabel.setText("");
+                            }
+                        },
+                        () -> specialOfferLabel.setText("")
+                );
+            } else {
+                System.out.println("Vă rugăm selectați o masă și un produs.");
+            }
+        });
+
+        // Event handler for the '-' button
+        removeProductButton.setOnAction(e -> {
+            Table selectedTable = tableListView.getSelectionModel().getSelectedItem();
+            Product productToRemove = orderProductsListView.getSelectionModel().getSelectedItem();
+
+            if (selectedTable != null && productToRemove != null) {
+                Order currentOrder = selectedTable.getCurrentOrder();
+                if (currentOrder != null) {
+                    currentOrder.removeProduct(productToRemove);
+                    currentOrder.applyOffer();
+
+                    // Refresh the order view
+                    orderProductsListView.setItems(FXCollections.observableArrayList(currentOrder.getProducts()));
+                    totalLabel.setText("Total: " + currentOrder.getTotalPrice());
+                    currentOrder.activeSpecialOffer.ifPresentOrElse(
+                            offer -> {
+                                if (offer.isApplicable()) {
+                                    specialOfferLabel.setText("Ofertă activă: " + offer.getName());
+                                } else {
+                                    specialOfferLabel.setText("");
+                                }
+                            },
+                            () -> specialOfferLabel.setText("")
+                    );
+                }
+            } else {
+                System.out.println("Vă rugăm selectați o masă și un produs din comandă pentru a-l șterge.");
+            }
+        });
+
+        HBox mainContainer = new HBox(10, tableListView, productListView, waiterRightContainer);
+        mainContainer.setPadding(new Insets(10));
+
+        Scene scene = new Scene(mainContainer, 900, 450);
         stage.setScene(scene);
-
     }
+
+
+
 
     private static void managerView(Stage stage) {
     }
