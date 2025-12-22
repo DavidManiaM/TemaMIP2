@@ -195,7 +195,7 @@ public class RestaurantApplication extends Application {
 
     private static void waiterView(Stage stage) {
 
-        HBox newOfferView = waiterNewOfferTabView(stage);
+        HBox newOfferView = waiterNewOrderTabView(stage);
 
         TabPane tabPane = new TabPane();
         Tab newOfferTab = new Tab("Oferta Noua");
@@ -213,7 +213,7 @@ public class RestaurantApplication extends Application {
         stage.setScene(scene);
     }
 
-    private static HBox waiterNewOfferTabView(Stage stage) {
+    private static HBox waiterNewOrderTabView(Stage stage) {
         List<Table> tables = restaurant.getTables();
 
         // Left: List of tables
@@ -233,9 +233,10 @@ public class RestaurantApplication extends Application {
 
         Button addProductButton = new Button("+");
         Button removeProductButton = new Button("-");
+        Button addOrderButton = new Button("Adaugă Comanda");
         HBox waiterOrderAddRemoveButtonsContainer = new HBox(10, addProductButton, removeProductButton);
 
-        VBox waiterRightContainer = new VBox(10, currentOrderLabel, orderProductsListView, totalLabel, specialOfferLabel, views.getProductDetailsView(), waiterOrderAddRemoveButtonsContainer);
+        VBox waiterRightContainer = new VBox(10, currentOrderLabel, orderProductsListView, totalLabel, specialOfferLabel, views.getProductDetailsView(), waiterOrderAddRemoveButtonsContainer, addOrderButton);
         waiterRightContainer.setPrefWidth(300);
 
         // Event handler for table selection
@@ -326,10 +327,82 @@ public class RestaurantApplication extends Application {
             }
         });
 
+        addOrderButton.setOnAction(e -> {
+            Table selectedTable = tableListView.getSelectionModel().getSelectedItem();
+            if (selectedTable != null && selectedTable.getCurrentOrder() != null) {
+                Order currentOrder = selectedTable.getCurrentOrder();
+
+                if (currentOrder.getProducts() == null || currentOrder.getProducts().isEmpty()) {
+                    System.out.println("Cannot add an empty order.");
+                    return;
+                }
+
+                EntityManager em = emf.createEntityManager();
+                try {
+                    em.getTransaction().begin();
+
+                    // Create a new Order entity for persistence
+                    Order newOrderToPersist = new Order();
+
+                    List<Waiter> waiters = em.createQuery("SELECT w FROM Waiter w", Waiter.class).getResultList();
+                    if (waiters.isEmpty()) {
+                        for (Waiter w : restaurant.getWaiters()) {
+                            em.persist(w);
+                            waiters.add(w);
+                        }
+                    }
+                    Waiter assignedWaiter = waiters.get((int) (Math.random() * waiters.size()));
+                    newOrderToPersist.setWaiter(assignedWaiter);
+
+                    // Copy products from the temporary order to the new one
+                    newOrderToPersist.setProducts(currentOrder.getOrderElements());
+                    newOrderToPersist.setTableNumber(selectedTable.getNumber());
+                    newOrderToPersist.setTotalPrice(currentOrder.getTotalPrice());
+
+                    em.persist(newOrderToPersist);
+
+                    if (assignedWaiter.getOrders() == null) {
+                        assignedWaiter.setOrders(new ArrayList<>());
+                    }
+                    assignedWaiter.getOrders().add(newOrderToPersist);
+                    em.merge(assignedWaiter);
+
+                    if (restaurant.getOrders() == null) {
+                        restaurant.setOrders(new ArrayList<>());
+                    }
+                    restaurant.getOrders().add(newOrderToPersist);
+
+                    em.getTransaction().commit();
+
+                    System.out.println("Comanda a fost adăugată cu succes pentru masa " + selectedTable.getNumber());
+
+                    // Clear the temporary order from the table view
+                    selectedTable.setCurrentOrder(null);
+                    orderProductsListView.getItems().clear();
+                    totalLabel.setText("Total: 0.0");
+                    specialOfferLabel.setText("");
+
+                } catch (Exception ex) {
+                    if (em.getTransaction().isActive()) {
+                        em.getTransaction().rollback();
+                    }
+                    ex.printStackTrace();
+                    System.out.println("Eroare la adăugarea comenzii.");
+                } finally {
+                    em.close();
+                }
+            } else {
+                System.out.println("Nu există o comandă de adăugat pentru masa selectată.");
+            }
+        });
+
         HBox mainContainer = new HBox(10, tableListView, productListView, waiterRightContainer);
         mainContainer.setPadding(new Insets(10));
         return mainContainer;
     }
+
+
+
 
 
     private static void managerView(Stage stage) {

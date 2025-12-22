@@ -16,12 +16,19 @@ import java.util.Optional;
 public class Order {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     public static final int TVA = Restaurant.TVA;
 
     @ManyToOne
     @JoinColumn(name = "waiter_id")
     private Waiter waiter;
+
+    @Column(name = "table_number")
+    private int tableNumber;
+
+    @Column(name = "total_price")
+    private double totalPrice;
 
     @Transient
     List<OrderElement> elements = new ArrayList<>();
@@ -198,6 +205,8 @@ public class Order {
         this.addElement(1, product);
     }
 
+
+
     public List<Product> getProducts(){
         List<Product> products = new ArrayList<>();
         for (OrderElement element : elements){
@@ -206,7 +215,31 @@ public class Order {
         return products;
     }
 
+    public List<OrderElement> getOrderElements() {
+        return elements;
+    }
+
     public void removeProduct(Product productToRemove) {
         elements.removeIf(element -> element.getProduct() == productToRemove);
+    }
+
+    public void setWaiter(Waiter assignedWaiter) {
+        this.waiter = assignedWaiter;
+    }
+
+    public int getTableNumber() {
+        return tableNumber;
+    }
+
+    public void setTableNumber(int tableNumber) {
+        this.tableNumber = tableNumber;
+    }
+
+    public void setTotalPrice(double totalPrice) {
+        this.totalPrice = totalPrice;
+    }
+
+    public void setProducts(List<OrderElement> orderElements) {
+        this.elements = orderElements;
     }
 }

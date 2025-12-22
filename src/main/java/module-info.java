@@ -6,7 +6,6 @@ module org.example.tema2 {
     requires org.hibernate.orm.core;
     requires javafx.base;
     requires javafx.graphics;
-    requires org.example.tema2;
 
     opens org.example.tema2.structure to com.fasterxml.jackson.databind, org.hibernate.orm.core;
     exports org.example.tema2.structure;
