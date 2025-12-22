@@ -3,6 +3,7 @@ package org.example.tema2.structure;
 import com.fasterxml.jackson.annotation.*;
 import org.example.tema2.model.Product;
 import org.example.tema2.model.Table;
+import org.example.tema2.model.Waiter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ public class Restaurant {
     @JsonIgnore
     private List<Order> orders = new ArrayList<>();
     private List<Table> tables = new ArrayList<>();
+    private List<Waiter> waiters = new ArrayList<>();
 
     public Restaurant(String name) {
         this.name = name;
@@ -105,4 +107,19 @@ public class Restaurant {
         tables.addAll(tablesToInsert);
     }
 
+    public List<Waiter> getWaiters() {
+        return waiters;
+    }
+
+    public void setWaiters(List<Waiter> waiters) {
+        this.waiters = waiters;
+    }
+
+    public void addWaiter(Waiter waiter) {
+        waiters.add(waiter);
+    }
+
+    public void addWaiters(List<Waiter> waitersToInsert) {
+        waiters.addAll(waitersToInsert);
+    }
 }

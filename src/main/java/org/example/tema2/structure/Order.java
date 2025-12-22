@@ -1,7 +1,9 @@
 package org.example.tema2.structure;
 
+import jakarta.persistence.*;
 import org.example.tema2.model.Food;
 import org.example.tema2.model.Product;
+import org.example.tema2.model.Waiter;
 import org.example.tema2.structure.utils.OrderElement;
 import org.example.tema2.structure.utils.SpecialOffer;
 
@@ -9,14 +11,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Entity
+@Table(name = "orders")
 public class Order {
 
+    @Id
+    private Long id;
     public static final int TVA = Restaurant.TVA;
+
+    @ManyToOne
+    @JoinColumn(name = "waiter_id")
+    private Waiter waiter;
+
+    @Transient
     List<OrderElement> elements = new ArrayList<>();
     public int discount = 0;
+
+    @Transient
     public Optional<SpecialOffer> activeSpecialOffer;
     private static final String PIZZA_OFFER_NAME = "Pizza Margherita - Oferta";
 
+    @Transient
     SpecialOffer _10PercentDiscountOver5Products = new SpecialOffer() {
         @Override
         public String getName() {
@@ -40,6 +55,7 @@ public class Order {
             }
         }
     };
+    @Transient
     SpecialOffer pizza1Plus1Free = new SpecialOffer() {
         @Override
         public String getName() {
@@ -66,6 +82,7 @@ public class Order {
             // This logic is now handled in the main applyOffer method
         }
     };
+    @Transient
     SpecialOffer _15PercentDiscountForLemonades = new SpecialOffer() {
         @Override
         public String getName() {
@@ -159,6 +176,14 @@ public class Order {
         str.append("\tTotal fara TVA: ").append(rawPriceString).append("\n");
 
         return str.append("}").toString();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public void addElement(OrderElement element){

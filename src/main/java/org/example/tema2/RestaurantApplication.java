@@ -47,6 +47,7 @@ public class RestaurantApplication extends Application {
 
 
         deserializeRestaurant();
+        initWaiters();
         views = new Views(stage, restaurant);
 
         // WelcomePage
@@ -57,6 +58,14 @@ public class RestaurantApplication extends Application {
 
         // Iteratia6(stage);
 
+    }
+
+    private void initWaiters() {
+        restaurant.setWaiters(List.of(
+                new Waiter("Ionel"), new Waiter("Marcel"),
+                new Waiter("Mirel"), new Waiter("Cornel"),
+                new Waiter("Costel")
+        ));
     }
 
     public void insertInitialCredentials() {
@@ -186,6 +195,25 @@ public class RestaurantApplication extends Application {
 
     private static void waiterView(Stage stage) {
 
+        HBox newOfferView = waiterNewOfferTabView(stage);
+
+        TabPane tabPane = new TabPane();
+        Tab newOfferTab = new Tab("Oferta Noua");
+        newOfferTab.setContent(newOfferView);
+        Tab offerHistoryTab = new Tab("Istoric oferte");
+        offerHistoryTab.setContent(new Label("Register view"));
+
+        tabPane.getTabs().addAll(newOfferTab, offerHistoryTab);
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+
+
+
+
+        Scene scene = new Scene(tabPane, 900, 450);
+        stage.setScene(scene);
+    }
+
+    private static HBox waiterNewOfferTabView(Stage stage) {
         List<Table> tables = restaurant.getTables();
 
         // Left: List of tables
@@ -300,12 +328,8 @@ public class RestaurantApplication extends Application {
 
         HBox mainContainer = new HBox(10, tableListView, productListView, waiterRightContainer);
         mainContainer.setPadding(new Insets(10));
-
-        Scene scene = new Scene(mainContainer, 900, 450);
-        stage.setScene(scene);
+        return mainContainer;
     }
-
-
 
 
     private static void managerView(Stage stage) {
