@@ -1,6 +1,5 @@
-package org.example.tema2.structure;
+package org.example.tema2.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.persistence.*;
 import javafx.beans.property.*;
@@ -78,15 +77,7 @@ public abstract /*sealed*/ class Product /*permits Food, Drink */{
 
     @Override
     public String toString() {
-        String nameValue = (name != null) ? name.get() : "";
-        String priceValue;
-        if (price != null) {
-            // DoubleProperty#get() returns a primitive double, so convert to String
-            priceValue = String.valueOf(price.get());
-        } else {
-            priceValue = "";
-        }
-        return "> " + nameValue + " – " + priceValue + " RON";
+        return (name != null) ? name.get() : "";
     }
 
     // JPA-compatible getters/setters that sync with properties

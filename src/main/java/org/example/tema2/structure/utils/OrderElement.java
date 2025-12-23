@@ -1,11 +1,12 @@
 package org.example.tema2.structure.utils;
 
 
-import org.example.tema2.structure.Product;
+import org.example.tema2.model.Product;
 
 public class OrderElement {
     public int quantity;
     public Product product;
+    private Double customPrice;
 
     public OrderElement(int quantity, Product product) {
         this.quantity = quantity;
@@ -30,10 +31,11 @@ public class OrderElement {
     }
 
     public double getPrice(){
+        if (customPrice != null) return quantity * customPrice;
         return quantity * product.getPrice();
     }
 
-//    public void setProduct(Product product) {
-//        this.product = product;
-//    }
+    public void setCustomPrice(Double price) {
+        this.customPrice = price;
+    }
 }

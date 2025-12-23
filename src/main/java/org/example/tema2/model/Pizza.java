@@ -1,4 +1,4 @@
-package org.example.tema2.structure;
+package org.example.tema2.model;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -6,9 +6,9 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
-import org.example.tema2.structure.Drink;
-import org.example.tema2.structure.Food;
-import org.example.tema2.structure.Product;
+import org.example.tema2.model.Drink;
+import org.example.tema2.model.Food;
+import org.example.tema2.model.Product;
 
 import java.io.IOException;
 

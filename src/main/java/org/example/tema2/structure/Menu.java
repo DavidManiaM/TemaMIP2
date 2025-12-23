@@ -1,6 +1,9 @@
 package org.example.tema2.structure;
 
 import jakarta.persistence.*;
+import org.example.tema2.model.Drink;
+import org.example.tema2.model.Food;
+import org.example.tema2.model.Product;
 
 import java.util.*;
 

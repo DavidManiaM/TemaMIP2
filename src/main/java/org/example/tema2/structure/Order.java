@@ -1,5 +1,8 @@
 package org.example.tema2.structure;
 
+import jakarta.persistence.*;
+import org.example.tema2.model.Product;
+import org.example.tema2.model.Waiter;
 import org.example.tema2.structure.utils.OrderElement;
 import org.example.tema2.structure.utils.SpecialOffer;
 
@@ -7,14 +10,34 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Entity
+@Table(name = "orders")
 public class Order {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     public static final int TVA = Restaurant.TVA;
-    List<OrderElement> elements = new ArrayList<OrderElement>();
-    public int discount = 0;
-    public Optional<SpecialOffer> activeSpecialOffer;
-    private boolean offerApplied = false;
 
+    @ManyToOne
+    @JoinColumn(name = "waiter_id")
+    private Waiter waiter;
+
+    @Column(name = "table_number")
+    private int tableNumber;
+
+    @Column(name = "total_price")
+    private double totalPrice;
+
+    @Transient
+    List<OrderElement> elements = new ArrayList<>();
+    public int discount = 0;
+
+    @Transient
+    public Optional<SpecialOffer> activeSpecialOffer;
+    private static final String PIZZA_OFFER_NAME = "Pizza Margherita - Oferta";
+
+    @Transient
     SpecialOffer _10PercentDiscountOver5Products = new SpecialOffer() {
         @Override
         public String getName() {
@@ -38,6 +61,7 @@ public class Order {
             }
         }
     };
+    @Transient
     SpecialOffer pizza1Plus1Free = new SpecialOffer() {
         @Override
         public String getName() {
@@ -46,21 +70,13 @@ public class Order {
 
         @Override
         public boolean isApplicable() {
-            boolean hasPizza = false;
-            for (OrderElement element : elements) {
-                if(element.getProduct().getName().contains("Pizza")) {
-                    hasPizza = true;
-                    break;
-                }
-            }
-
-            return hasPizza;
+            return elements.stream().anyMatch(el -> el.getProduct().getName().contains("Pizza") && !el.getProduct().getName().equals(PIZZA_OFFER_NAME));
         }
 
         private int nrOfPizzas(){
             int nrPizzas = 0;
             for (OrderElement element : elements) {
-                if(element.getProduct().getName().contains("Pizza")) {
+                if(element.getProduct().getName().contains("Pizza") && !element.getProduct().getName().equals(PIZZA_OFFER_NAME)) {
                     nrPizzas += element.quantity;
                 }
             }
@@ -69,9 +85,10 @@ public class Order {
 
         @Override
         public void applyOffer() {
-            elements.add(new OrderElement(nrOfPizzas(), new Food("Pizza Margherita - Oferta", 0, 450, Product.Type.MAIN_COURSE)));
+            // This logic is now handled in the main applyOffer method
         }
     };
+    @Transient
     SpecialOffer _15PercentDiscountForLemonades = new SpecialOffer() {
         @Override
         public String getName() {
@@ -105,47 +122,157 @@ public class Order {
     };
 
 
+    @Transient
+    private double discountAmount = 0.0;
+
     public Order(){
-        activeSpecialOffer = Optional.ofNullable(pizza1Plus1Free);
+        activeSpecialOffer = Optional.empty();
     }
 
     public void applyOffer() {
-        if (!offerApplied && activeSpecialOffer.isPresent() && activeSpecialOffer.get().isApplicable()) {
-            activeSpecialOffer.get().applyOffer();
-            offerApplied = true;
+        discountAmount = 0.0;
+        // Reset custom prices if any were set (though we use discountAmount now)
+        for(OrderElement el : elements) el.setCustomPrice(null);
+
+        org.example.tema2.structure.utils.OfferManager offerManager = org.example.tema2.structure.utils.OfferManager.getInstance();
+        List<String> activeOfferNames = new ArrayList<>();
+
+        if (offerManager.isOfferActive(org.example.tema2.structure.utils.OfferManager.HAPPY_HOUR_DRINKS)) {
+            applyHappyHour();
+            activeOfferNames.add("Happy Hour");
+        }
+        if (offerManager.isOfferActive(org.example.tema2.structure.utils.OfferManager.MEAL_DEAL)) {
+            applyMealDeal();
+            activeOfferNames.add("Meal Deal");
+        }
+        if (offerManager.isOfferActive(org.example.tema2.structure.utils.OfferManager.PARTY_PACK)) {
+            applyPartyPack();
+            activeOfferNames.add("Party Pack");
+        }
+
+        if (!activeOfferNames.isEmpty()) {
+            String names = String.join(", ", activeOfferNames);
+            activeSpecialOffer = Optional.of(new SpecialOffer() {
+                @Override
+                public String getName() { return names; }
+                @Override
+                public void applyOffer() { }
+                @Override
+                public boolean isApplicable() { return true; }
+            });
+        } else {
+            activeSpecialOffer = Optional.empty();
         }
     }
 
-    public double getTotal(){
+    private void applyHappyHour() {
+        int drinkCount = 0;
+        for (OrderElement el : elements) {
+            if (el.getProduct() instanceof org.example.tema2.model.Drink) {
+                for(int i=0; i<el.quantity; i++) {
+                    drinkCount++;
+                    if (drinkCount % 2 == 0) {
+                        discountAmount += el.getProduct().getPrice() * 0.5;
+                    }
+                }
+            }
+        }
+    }
+
+    private void applyMealDeal() {
+        boolean hasPizza = elements.stream().anyMatch(el -> el.getProduct() instanceof org.example.tema2.model.Pizza);
+        if (hasPizza) {
+            OrderElement cheapestDessertEl = null;
+            double minPrice = Double.MAX_VALUE;
+
+            for (OrderElement el : elements) {
+                if (el.getProduct().getType() == Product.Type.DESSERT) {
+                    if (el.getProduct().getPrice() < minPrice) {
+                        minPrice = el.getProduct().getPrice();
+                        cheapestDessertEl = el;
+                    }
+                }
+            }
+
+            if (cheapestDessertEl != null) {
+                discountAmount += cheapestDessertEl.getProduct().getPrice() * 0.25;
+            }
+        }
+    }
+
+    private void applyPartyPack() {
+        int pizzaCount = 0;
+        for (OrderElement el : elements) {
+            if (el.getProduct() instanceof org.example.tema2.model.Pizza) {
+                pizzaCount += el.quantity;
+            }
+        }
+
+        if (pizzaCount >= 4) {
+            double minPrice = Double.MAX_VALUE;
+            for (OrderElement el : elements) {
+                if (el.getProduct() instanceof org.example.tema2.model.Pizza) {
+                    if (el.getProduct().getPrice() < minPrice) {
+                        minPrice = el.getProduct().getPrice();
+                    }
+                }
+            }
+
+            if (minPrice != Double.MAX_VALUE) {
+                discountAmount += minPrice;
+            }
+        }
+    }
+
+    public double getTotalPrice(){
         double total = 0;
         for (OrderElement element : elements){
             total += element.getPrice();
         }
-        return total * ((100 - discount) / 100.0);
+        double priceAfterDiscount = total - discountAmount;
+        if (priceAfterDiscount < 0) priceAfterDiscount = 0;
+
+        return priceAfterDiscount * ((100 - discount) / 100.0);
     }
+
+//    @Override
+//    public String toString() {
+//
+//        applyOffer();
+//
+//        StringBuilder str = new StringBuilder();
+//        str.append("Order {\n");
+//        for (OrderElement element : elements){
+//            str.append("\t").append(element.toString()).append("\n");
+//        }
+//
+//        if(activeSpecialOffer.isPresent() && activeSpecialOffer.get().isApplicable()){
+//            str.append("------------------------------\n\tOferta activa: ").append(activeSpecialOffer.get().getName()).append("\n");
+//        }
+//
+//        double totalWithVat = getTotalPrice();
+//        str.append("------------------------------\n\tTotal cu TVA: ").append(totalWithVat).append("\n");
+//
+//        String rawPriceString = String.format("%.2f", totalWithVat * 100 / (100 + TVA));
+//        str.append("\tTotal fara TVA: ").append(rawPriceString).append("\n");
+//
+//        return str.append("}").toString();
+//    }
 
     @Override
     public String toString() {
 
         applyOffer();
 
-        StringBuilder str = new StringBuilder();
-        str.append("Order {\n");
-        for (OrderElement element : elements){
-            str.append("\t").append(element.toString()).append("\n");
-        }
+        return "Order [id = " + id + ", pret = " + totalPrice + "]";
+    }
 
-        if(activeSpecialOffer.isPresent() && activeSpecialOffer.get().isApplicable()){
-            str.append("------------------------------\n\tOferta activa: ").append(activeSpecialOffer.get().getName()).append("\n");
-        }
+    public Long getId() {
+        return id;
+    }
 
-        double totalWithVat = getTotal();
-        str.append("------------------------------\n\tTotal cu TVA: ").append(totalWithVat).append("\n");
-
-        String rawPriceString = String.format("%.2f", totalWithVat * 100 / (100 + TVA));
-        str.append("\tTotal fara TVA: ").append(rawPriceString).append("\n");
-
-        return str.append("}").toString();
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public void addElement(OrderElement element){
@@ -154,5 +281,47 @@ public class Order {
 
     public void addElement(int quantity, Product product){
         elements.add(new OrderElement(quantity, product));
+    }
+
+    public void addProduct(Product product){
+        this.addElement(1, product);
+    }
+
+
+
+    public List<Product> getProducts(){
+        List<Product> products = new ArrayList<>();
+        for (OrderElement element : elements){
+            products.add(element.getProduct());
+        }
+        return products;
+    }
+
+    public List<OrderElement> getOrderElements() {
+        return elements;
+    }
+
+    public void removeProduct(Product productToRemove) {
+        elements.removeIf(element -> element.getProduct() == productToRemove);
+    }
+
+    public void setWaiter(Waiter assignedWaiter) {
+        this.waiter = assignedWaiter;
+    }
+
+    public int getTableNumber() {
+        return tableNumber;
+    }
+
+    public void setTableNumber(int tableNumber) {
+        this.tableNumber = tableNumber;
+    }
+
+    public void setTotalPrice(double totalPrice) {
+        this.totalPrice = totalPrice;
+    }
+
+    public void setProducts(List<OrderElement> orderElements) {
+        this.elements = orderElements;
     }
 }
