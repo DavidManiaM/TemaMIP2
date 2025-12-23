@@ -38,7 +38,7 @@ public class RestaurantApplication extends Application {
     private final Path restaurantConfigFilePath = Path.of("configRestaurant.json");
     private final Path menuConfigFilePath = Path.of("configMenu.json");
     private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("restaurantPU");
-    public static FilteredList<Product> filtered;
+    private static FilteredList<Product> filtered;
 
     static Views views;
 
@@ -50,13 +50,8 @@ public class RestaurantApplication extends Application {
         initWaiters();
         views = new Views(emf, stage, restaurant);
 
-        // WelcomePage
-
         // insertInitialCredentials(); --> Don't call again
         welcomeView();
-
-
-        // Iteratia6(stage);
 
     }
 
@@ -163,9 +158,6 @@ public class RestaurantApplication extends Application {
             String name = nameField.getText();
             String password = passwordField.getText();
 
-            Credentials credentials = new Credentials(name, password);
-
-            EntityManagerFactory credentialsEmf;
             CredentialsRepository credentialsRepo = new CredentialsRepository(emf);
 
             Optional<Credentials.Role> roleOptional = credentialsRepo.getRoleByUsernameAndPassword(name, password);
@@ -441,6 +433,11 @@ public class RestaurantApplication extends Application {
         }
     }
 
+    public static FilteredList<Product> getFiltered() {
+        return filtered;
+    }
 
-
+    public static void setFiltered(FilteredList<Product> filtered) {
+        RestaurantApplication.filtered = filtered;
+    }
 }
