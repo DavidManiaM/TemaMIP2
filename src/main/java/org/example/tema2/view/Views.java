@@ -197,7 +197,10 @@ public class Views {
                         () -> specialOfferLabel.setText("")
                 );
             } else {
-                System.out.println("Vă rugăm selectați o masă și un produs.");
+                System.out.println("Vă rugăm să selectați o masă și un produs.");
+                Alert alert =  new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("Vă rugăm să selectați o masă și un produs.");
+                alert.showAndWait();
             }
         });
 
@@ -227,7 +230,10 @@ public class Views {
                     );
                 }
             } else {
-                System.out.println("Vă rugăm selectați o masă și un produs din comandă pentru a-l șterge.");
+                System.out.println("Vă rugăm să selectați o masă și un produs din comandă pentru a-l șterge.");
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("Vă rugăm să selectați o masă și un produs din comandă pentru a-l șterge.");
+                alert.showAndWait();
             }
         });
 
@@ -279,6 +285,9 @@ public class Views {
                     em.getTransaction().commit();
 
                     System.out.println("Comanda a fost adăugată cu succes pentru masa " + selectedTable.getNumber());
+                    Alert alert =  new Alert(Alert.AlertType.INFORMATION);
+                    alert.setContentText("Comanda a fost adăugată cu succes pentru masa " + selectedTable.getNumber());
+                    alert.showAndWait();
 
                     // Clear the temporary order from the table view
                     selectedTable.setCurrentOrder(null);
@@ -292,11 +301,17 @@ public class Views {
                     }
                     ex.printStackTrace();
                     System.out.println("Eroare la adăugarea comenzii.");
+                    Alert alert =  new Alert(Alert.AlertType.ERROR);
+                    alert.setContentText("Eroare la adăugarea comenzii.");
+                    alert.showAndWait();
                 } finally {
                     em.close();
                 }
             } else {
                 System.out.println("Nu există o comandă de adăugat pentru masa selectată.");
+                Alert alert =  new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("Nu există o comandă de adăugat pentru masa selectată.");
+                alert.showAndWait();
             }
         });
 
@@ -310,8 +325,8 @@ public class Views {
         root.setPadding(new Insets(20));
 
         ObservableList<Product> observableProducts = FXCollections.observableArrayList(restaurant.getProducts());
-        RestaurantApplication.filtered = new FilteredList<>(observableProducts, t -> true);
-        productListView.setItems(RestaurantApplication.filtered);
+        RestaurantApplication.setFiltered(new FilteredList<>(observableProducts, t -> true));
+        productListView.setItems(RestaurantApplication.getFiltered());
 
         MenuButton filterDropdown = new MenuButton("Filtre");
 
@@ -636,7 +651,9 @@ public class Views {
                             if (!results.isEmpty()) {
                                 managedProduct = results.get(0);
                             }
-                        } catch (Exception ex) { }
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
                     }
 
                     if (managedProduct != null) {
@@ -679,7 +696,9 @@ public class Views {
                                  if (!results.isEmpty()) {
                                      managedProduct = results.get(0);
                                  }
-                             } catch (Exception ex) { }
+                             } catch (Exception ex) {
+                                 ex.printStackTrace();
+                             }
                          }
 
                          if (managedProduct != null) {
