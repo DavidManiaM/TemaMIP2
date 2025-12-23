@@ -16,6 +16,8 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.stage.Modality;
 import org.example.tema2.RestaurantApplication;
 import org.example.tema2.model.*;
 import org.example.tema2.structure.Order;
@@ -23,6 +25,8 @@ import org.example.tema2.structure.Restaurant;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.function.Consumer;
 
 public class Views {
     private Stage stage;
@@ -39,6 +43,7 @@ public class Views {
     private Scene managerScene;
 
     private EntityManagerFactory emf;
+    private Stage loadingStage;
 
     public Views(EntityManagerFactory emf, Stage stage, Restaurant restaurant) {
         this.emf = emf;
@@ -52,26 +57,79 @@ public class Views {
         initWaiterOfferHistoryTab();
     }
 
+    private void initLoadingStage() {
+        loadingStage = new Stage();
+        loadingStage.initStyle(StageStyle.UNDECORATED);
+        loadingStage.initModality(Modality.APPLICATION_MODAL);
+        loadingStage.initOwner(stage);
+
+        ProgressIndicator progressIndicator = new ProgressIndicator();
+        VBox box = new VBox(progressIndicator);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(20));
+        box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.8); -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: lightgray;");
+
+        Scene scene = new Scene(box);
+        scene.setFill(null);
+        loadingStage.setScene(scene);
+    }
+
+    public void showLoading() {
+        if (loadingStage == null) initLoadingStage();
+        loadingStage.show();
+    }
+
+    public void hideLoading() {
+        if (loadingStage != null) loadingStage.hide();
+    }
+
+    public <T> void executeTask(Supplier<T> backgroundTask, Consumer<T> uiUpdateTask) {
+        showLoading();
+        new Thread(() -> {
+            try {
+                T result = backgroundTask.get();
+                javafx.application.Platform.runLater(() -> {
+                    hideLoading();
+                    if (uiUpdateTask != null) uiUpdateTask.accept(result);
+                });
+            } catch (Exception e) {
+                javafx.application.Platform.runLater(() -> {
+                    hideLoading();
+                    e.printStackTrace();
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Error: " + e.getMessage());
+                    alert.show();
+                });
+            }
+        }).start();
+    }
+
     private void initWaiterOfferHistoryTab() {
         ListView<Order> orderListView = new ListView<>();
-        EntityManager em = emf.createEntityManager();
-        try {
-            // Assuming the logged-in waiter has ID = 1 for this example.
-            // In a real application, you would pass the actual logged-in waiter's ID.
-            long waiterId = 1L;
-            List<Order> orders = em.createQuery("SELECT o FROM Order o WHERE o.waiter.id = :waiterId", Order.class)
-                    .setParameter("waiterId", waiterId)
-                    .getResultList();
-            orderListView.setItems(FXCollections.observableArrayList(orders));
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println("Could not fetch order history.");
-        } finally {
-            em.close();
-        }
-
         waiterOfferHistoryTab = new HBox(orderListView);
         waiterOfferHistoryTab.setPadding(new Insets(10));
+
+        executeTask(() -> {
+            EntityManager em = emf.createEntityManager();
+            List<Order> orders = null;
+            try {
+                // Assuming the logged-in waiter has ID = 1 for this example.
+                // In a real application, you would pass the actual logged-in waiter's ID.
+                long waiterId = 1L;
+                orders = em.createQuery("SELECT o FROM Order o WHERE o.waiter.id = :waiterId", Order.class)
+                        .setParameter("waiterId", waiterId)
+                        .getResultList();
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("Could not fetch order history.");
+            } finally {
+                em.close();
+            }
+            return orders;
+        }, orders -> {
+            if (orders != null) {
+                orderListView.setItems(FXCollections.observableArrayList(orders));
+            }
+        });
     }
 
     private void initWaiterNewOrderTabView() {
@@ -247,42 +305,52 @@ public class Views {
                     return;
                 }
 
-                EntityManager em = emf.createEntityManager();
-                try {
-                    em.getTransaction().begin();
+                executeTask(() -> {
+                    EntityManager em = emf.createEntityManager();
+                    try {
+                        em.getTransaction().begin();
 
-                    // Create a new Order entity for persistence
-                    Order newOrderToPersist = new Order();
+                        // Create a new Order entity for persistence
+                        Order newOrderToPersist = new Order();
 
-                    List<Waiter> waiters = em.createQuery("SELECT w FROM Waiter w", Waiter.class).getResultList();
-                    if (waiters.isEmpty()) {
-                        for (Waiter w : restaurant.getWaiters()) {
-                            em.persist(w);
-                            waiters.add(w);
+                        List<Waiter> waiters = em.createQuery("SELECT w FROM Waiter w", Waiter.class).getResultList();
+                        if (waiters.isEmpty()) {
+                            for (Waiter w : new ArrayList<>(restaurant.getWaiters())) {
+                                em.persist(w);
+                                waiters.add(w);
+                            }
                         }
+                        Waiter assignedWaiter = waiters.get((int) (Math.random() * waiters.size()));
+                        newOrderToPersist.setWaiter(assignedWaiter);
+
+                        // Copy products from the temporary order to the new one
+                        newOrderToPersist.setProducts(currentOrder.getOrderElements());
+                        newOrderToPersist.setTableNumber(selectedTable.getNumber());
+                        newOrderToPersist.setTotalPrice(currentOrder.getTotalPrice());
+
+                        em.persist(newOrderToPersist);
+
+                        if (assignedWaiter.getOrders() == null) {
+                            assignedWaiter.setOrders(new ArrayList<>());
+                        }
+                        assignedWaiter.getOrders().add(newOrderToPersist);
+                        em.merge(assignedWaiter);
+
+                        em.getTransaction().commit();
+                        return newOrderToPersist;
+                    } catch (Exception ex) {
+                        if (em.getTransaction().isActive()) {
+                            em.getTransaction().rollback();
+                        }
+                        throw new RuntimeException(ex);
+                    } finally {
+                        em.close();
                     }
-                    Waiter assignedWaiter = waiters.get((int) (Math.random() * waiters.size()));
-                    newOrderToPersist.setWaiter(assignedWaiter);
-
-                    // Copy products from the temporary order to the new one
-                    newOrderToPersist.setProducts(currentOrder.getOrderElements());
-                    newOrderToPersist.setTableNumber(selectedTable.getNumber());
-                    newOrderToPersist.setTotalPrice(currentOrder.getTotalPrice());
-
-                    em.persist(newOrderToPersist);
-
-                    if (assignedWaiter.getOrders() == null) {
-                        assignedWaiter.setOrders(new ArrayList<>());
-                    }
-                    assignedWaiter.getOrders().add(newOrderToPersist);
-                    em.merge(assignedWaiter);
-
+                }, persistedOrder -> {
                     if (restaurant.getOrders() == null) {
                         restaurant.setOrders(new ArrayList<>());
                     }
-                    restaurant.getOrders().add(newOrderToPersist);
-
-                    em.getTransaction().commit();
+                    restaurant.getOrders().add(persistedOrder);
 
                     System.out.println("Comanda a fost adăugată cu succes pentru masa " + selectedTable.getNumber());
                     Alert alert =  new Alert(Alert.AlertType.INFORMATION);
@@ -294,19 +362,8 @@ public class Views {
                     orderProductsListView.getItems().clear();
                     totalLabel.setText("Total: 0.0");
                     specialOfferLabel.setText("");
+                });
 
-                } catch (Exception ex) {
-                    if (em.getTransaction().isActive()) {
-                        em.getTransaction().rollback();
-                    }
-                    ex.printStackTrace();
-                    System.out.println("Eroare la adăugarea comenzii.");
-                    Alert alert =  new Alert(Alert.AlertType.ERROR);
-                    alert.setContentText("Eroare la adăugarea comenzii.");
-                    alert.showAndWait();
-                } finally {
-                    em.close();
-                }
             } else {
                 System.out.println("Nu există o comandă de adăugat pentru masa selectată.");
                 Alert alert =  new Alert(Alert.AlertType.ERROR);
@@ -536,10 +593,14 @@ public class Views {
         nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
         waiterTable.getColumns().addAll(idCol, nameCol);
 
-        EntityManager em = emf.createEntityManager();
-        List<Waiter> waiters = em.createQuery("SELECT w FROM Waiter w", Waiter.class).getResultList();
-        em.close();
-        waiterTable.setItems(FXCollections.observableArrayList(waiters));
+        executeTask(() -> {
+            EntityManager em = emf.createEntityManager();
+            List<Waiter> waiters = em.createQuery("SELECT w FROM Waiter w", Waiter.class).getResultList();
+            em.close();
+            return waiters;
+        }, waiters -> {
+            waiterTable.setItems(FXCollections.observableArrayList(waiters));
+        });
 
         TextField nameField = new TextField();
         nameField.setPromptText("Nume Ospatar");
@@ -549,14 +610,18 @@ public class Views {
         addButton.setOnAction(e -> {
             String name = nameField.getText();
             if (!name.isEmpty()) {
-                Waiter w = new Waiter(name);
-                EntityManager em1 = emf.createEntityManager();
-                em1.getTransaction().begin();
-                em1.persist(w);
-                em1.getTransaction().commit();
-                em1.close();
-                waiterTable.getItems().add(w);
-                nameField.clear();
+                executeTask(() -> {
+                    Waiter w = new Waiter(name);
+                    EntityManager em1 = emf.createEntityManager();
+                    em1.getTransaction().begin();
+                    em1.persist(w);
+                    em1.getTransaction().commit();
+                    em1.close();
+                    return w;
+                }, w -> {
+                    waiterTable.getItems().add(w);
+                    nameField.clear();
+                });
             }
         });
 
@@ -566,15 +631,19 @@ public class Views {
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Sigur stergeti ospatarul " + selected.getName() + "? Toate comenzile vor fi sterse!", ButtonType.YES, ButtonType.NO);
                 alert.showAndWait().ifPresent(response -> {
                     if (response == ButtonType.YES) {
-                        EntityManager em2 = emf.createEntityManager();
-                        em2.getTransaction().begin();
-                        Waiter managedWaiter = em2.find(Waiter.class, selected.getId());
-                        if (managedWaiter != null) {
-                            em2.remove(managedWaiter);
-                        }
-                        em2.getTransaction().commit();
-                        em2.close();
-                        waiterTable.getItems().remove(selected);
+                        executeTask(() -> {
+                            EntityManager em2 = emf.createEntityManager();
+                            em2.getTransaction().begin();
+                            Waiter managedWaiter = em2.find(Waiter.class, selected.getId());
+                            if (managedWaiter != null) {
+                                em2.remove(managedWaiter);
+                            }
+                            em2.getTransaction().commit();
+                            em2.close();
+                            return null;
+                        }, result -> {
+                            waiterTable.getItems().remove(selected);
+                        });
                     }
                 });
             }
@@ -610,24 +679,27 @@ public class Views {
             try {
                 String name = nameField.getText();
                 double price = Double.parseDouble(priceField.getText());
-                Product p = new Food(name, price, 0, Product.Type.MAIN_COURSE); // Defaulting to Food/Main Course
 
-                EntityManager em = emf.createEntityManager();
-                try {
-                    em.getTransaction().begin();
-                    em.persist(p);
-                    em.getTransaction().commit();
-
+                executeTask(() -> {
+                    Product p = new Food(name, price, 0, Product.Type.MAIN_COURSE); // Defaulting to Food/Main Course
+                    EntityManager em = emf.createEntityManager();
+                    try {
+                        em.getTransaction().begin();
+                        em.persist(p);
+                        em.getTransaction().commit();
+                        return p;
+                    } catch (Exception ex) {
+                        if (em.getTransaction().isActive()) em.getTransaction().rollback();
+                        throw new RuntimeException(ex);
+                    } finally {
+                        em.close();
+                    }
+                }, p -> {
                     restaurant.addProduct(p);
                     productTable.getItems().add(p);
                     nameField.clear();
                     priceField.clear();
-                } catch (Exception ex) {
-                    if (em.getTransaction().isActive()) em.getTransaction().rollback();
-                    ex.printStackTrace();
-                } finally {
-                    em.close();
-                }
+                });
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -636,39 +708,42 @@ public class Views {
         deleteButton.setOnAction(e -> {
             Product selected = productTable.getSelectionModel().getSelectedItem();
             if (selected != null) {
-                EntityManager em = emf.createEntityManager();
-                try {
-                    em.getTransaction().begin();
-                    Product managedProduct = null;
-                    if (selected.getId() != null) {
-                        managedProduct = em.find(Product.class, selected.getId());
-                    }
-                    if (managedProduct == null) {
-                        try {
-                            List<Product> results = em.createQuery("SELECT p FROM Product p WHERE p.name = :name", Product.class)
-                                    .setParameter("name", selected.getName())
-                                    .getResultList();
-                            if (!results.isEmpty()) {
-                                managedProduct = results.get(0);
-                            }
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
+                executeTask(() -> {
+                    EntityManager em = emf.createEntityManager();
+                    try {
+                        em.getTransaction().begin();
+                        Product managedProduct = null;
+                        if (selected.getId() != null) {
+                            managedProduct = em.find(Product.class, selected.getId());
                         }
-                    }
+                        if (managedProduct == null) {
+                            try {
+                                List<Product> results = em.createQuery("SELECT p FROM Product p WHERE p.name = :pName", Product.class)
+                                        .setParameter("pName", selected.getName())
+                                        .getResultList();
+                                if (!results.isEmpty()) {
+                                    managedProduct = results.get(0);
+                                }
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+                        }
 
-                    if (managedProduct != null) {
-                        em.remove(managedProduct);
+                        if (managedProduct != null) {
+                            em.remove(managedProduct);
+                        }
+                        em.getTransaction().commit();
+                    } catch (Exception ex) {
+                        if (em.getTransaction().isActive()) em.getTransaction().rollback();
+                        throw new RuntimeException(ex);
+                    } finally {
+                        em.close();
                     }
-                    em.getTransaction().commit();
-
+                    return null;
+                }, result -> {
                     restaurant.getProducts().remove(selected);
                     productTable.getItems().remove(selected);
-                } catch (Exception ex) {
-                    if (em.getTransaction().isActive()) em.getTransaction().rollback();
-                    ex.printStackTrace();
-                } finally {
-                    em.close();
-                }
+                });
             }
         });
 
@@ -680,18 +755,19 @@ public class Views {
                     double newPrice = Double.parseDouble(priceField.getText());
                     String oldName = selected.getName();
 
-                    EntityManager em = emf.createEntityManager();
-                    try {
-                        em.getTransaction().begin();
-                        Product managedProduct = null;
-                        if (selected.getId() != null) {
-                            managedProduct = em.find(Product.class, selected.getId());
-                        }
+                    executeTask(() -> {
+                        EntityManager em = emf.createEntityManager();
+                        try {
+                            em.getTransaction().begin();
+                            Product managedProduct = null;
+                            if (selected.getId() != null) {
+                                managedProduct = em.find(Product.class, selected.getId());
+                            }
 
                         if (managedProduct == null) {
                             try {
-                                List<Product> results = em.createQuery("SELECT p FROM Product p WHERE p.name = :name", Product.class)
-                                        .setParameter("name", oldName)
+                                List<Product> results = em.createQuery("SELECT p FROM Product p WHERE p.name = :pName", Product.class)
+                                        .setParameter("pName", oldName)
                                         .getResultList();
                                 if (!results.isEmpty()) {
                                     managedProduct = results.get(0);
@@ -701,30 +777,39 @@ public class Views {
                             }
                         }
 
-                        if (managedProduct != null) {
-                            managedProduct.setName(newName);
-                            managedProduct.setPrice(newPrice);
-                            if (selected.getId() == null) {
-                                selected.setId(managedProduct.getId());
+                            if (managedProduct != null) {
+                                managedProduct.setName(newName);
+                                managedProduct.setPrice(newPrice);
+                                if (selected.getId() == null) {
+                                    // We can't set ID on selected here if it's bound to UI?
+                                    // Actually ID is not bound.
+                                    // But we should return the ID.
+                                }
+                            } else {
+                                // Product not in DB yet, persist a copy
+                                // We create a new instance to persist
+                                Product newP = new Food(newName, newPrice, 0, Product.Type.MAIN_COURSE);
+                                // Copy other fields if necessary
+                                em.persist(newP);
+                                managedProduct = newP;
                             }
-                        } else {
-                            // Product not in DB yet, persist it
-                            selected.setName(newName);
-                            selected.setPrice(newPrice);
-                            em.persist(selected);
+                            em.getTransaction().commit();
+                            return managedProduct;
+                        } catch (Exception ex) {
+                            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+                            throw new RuntimeException(ex);
+                        } finally {
+                            em.close();
                         }
-                        em.getTransaction().commit();
-
+                    }, result -> {
                         // Update local object
                         selected.setName(newName);
                         selected.setPrice(newPrice);
+                        if (result != null && selected.getId() == null) {
+                            selected.setId(result.getId());
+                        }
                         productTable.refresh();
-                    } catch (Exception ex) {
-                        if (em.getTransaction().isActive()) em.getTransaction().rollback();
-                        ex.printStackTrace();
-                    } finally {
-                        em.close();
-                    }
+                    });
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
@@ -742,27 +827,34 @@ public class Views {
         Button exportButton = new Button("Export JSON");
 
         importButton.setOnAction(e -> {
-            ObjectMapper mapper = new ObjectMapper();
-            try {
-                Restaurant loaded = mapper.readValue(new File("configRestaurant.json"), Restaurant.class);
+            executeTask(() -> {
+                ObjectMapper mapper = new ObjectMapper();
+                try {
+                    return mapper.readValue(new File("configRestaurant.json"), Restaurant.class);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }, loaded -> {
                 restaurant.getProducts().clear();
                 restaurant.getProducts().addAll(loaded.getProducts());
                 productTable.setItems(FXCollections.observableArrayList(restaurant.getProducts()));
                 productTable.refresh();
                 System.out.println("Imported from configRestaurant.json");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            });
         });
 
         exportButton.setOnAction(e -> {
-            ObjectMapper mapper = new ObjectMapper();
-            try {
-                mapper.writerWithDefaultPrettyPrinter().writeValue(new File("configRestaurant.json"), restaurant);
+            executeTask(() -> {
+                ObjectMapper mapper = new ObjectMapper();
+                try {
+                    mapper.writerWithDefaultPrettyPrinter().writeValue(new File("configRestaurant.json"), restaurant);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+                return null;
+            }, result -> {
                 System.out.println("Exported to configRestaurant.json");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            });
         });
 
         VBox controls = new VBox(10, nameField, priceField, addButton, editButton, deleteButton, importButton, exportButton);
@@ -802,17 +894,26 @@ public class Views {
 
     private Tab createHistoryTab() {
         ListView<Order> orderList = new ListView<>();
-        EntityManager em = emf.createEntityManager();
-        List<Order> orders = em.createQuery("SELECT o FROM Order o", Order.class).getResultList();
-        em.close();
-        orderList.setItems(FXCollections.observableArrayList(orders));
+
+        executeTask(() -> {
+            EntityManager em = emf.createEntityManager();
+            List<Order> orders = em.createQuery("SELECT o FROM Order o", Order.class).getResultList();
+            em.close();
+            return orders;
+        }, orders -> {
+            orderList.setItems(FXCollections.observableArrayList(orders));
+        });
 
         Button refreshBtn = new Button("Refresh");
         refreshBtn.setOnAction(e -> {
-            EntityManager em2 = emf.createEntityManager();
-            List<Order> newOrders = em2.createQuery("SELECT o FROM Order o", Order.class).getResultList();
-            em2.close();
-            orderList.setItems(FXCollections.observableArrayList(newOrders));
+            executeTask(() -> {
+                EntityManager em2 = emf.createEntityManager();
+                List<Order> newOrders = em2.createQuery("SELECT o FROM Order o", Order.class).getResultList();
+                em2.close();
+                return newOrders;
+            }, newOrders -> {
+                orderList.setItems(FXCollections.observableArrayList(newOrders));
+            });
         });
 
         VBox root = new VBox(10, refreshBtn, orderList);
