@@ -32,7 +32,7 @@
       "type" : "MAIN_COURSE",
       "weight" : 400
     }, {
-      "id" : null,
+      "id" : 281,
       "name" : "Lava Cake",
       "price" : 20.0,
       "vegetarian" : true,

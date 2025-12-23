@@ -158,23 +158,26 @@ public class RestaurantApplication extends Application {
             String name = nameField.getText();
             String password = passwordField.getText();
 
-            CredentialsRepository credentialsRepo = new CredentialsRepository(emf);
-
-            Optional<Credentials.Role> roleOptional = credentialsRepo.getRoleByUsernameAndPassword(name, password);
-
-            if (roleOptional.isPresent()) {
-                if (roleOptional.get() == Credentials.Role.ADMIN) {
-                    System.out.println("LOGIN SUCCESSFUL: [ADMIN]");
-                    managerView(stage);
+            views.executeTask(() -> {
+                CredentialsRepository credentialsRepo = new CredentialsRepository(emf);
+                return credentialsRepo.getRoleByUsernameAndPassword(name, password);
+            }, roleOptional -> {
+                if (roleOptional.isPresent()) {
+                    if (roleOptional.get() == Credentials.Role.ADMIN) {
+                        System.out.println("LOGIN SUCCESSFUL: [ADMIN]");
+                        managerView(stage);
+                    }
+                    else if (roleOptional.get() == Credentials.Role.WAITER) {
+                        System.out.println("LOGIN SUCCESSFUL: [WAITER]");
+                        waiterView(stage);
+                    }
                 }
-                else if (roleOptional.get() == Credentials.Role.WAITER) {
-                    System.out.println("LOGIN SUCCESSFUL: [WAITER]");
-                    waiterView(stage);
+                else {
+                    System.out.println("LOGIN ERORR: Username or password is incorrect");
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Username or password is incorrect");
+                    alert.show();
                 }
-            }
-            else {
-                System.out.println("LOGIN ERORR: Username or password is incorrect");
-            }
+            });
         });
 
         VBox rootBox = new VBox(0, nameContainer, passwordContainer, loginButton);
